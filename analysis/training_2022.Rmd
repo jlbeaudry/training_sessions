@@ -1,0 +1,399 @@
+---
+title: "Training, Development and Communication 2022"
+subtitle: "Research Development and Support"
+#author: "Jen Beaudry"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,
+                      include = FALSE)
+
+```
+
+```{r library}
+
+library(here)
+library(tidyverse)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(rmarkdown)
+
+```
+
+```{r load data}
+
+df <- read_xlsx(
+  here::here("data",
+             "2022_training_data.xlsx"),
+  sheet = '2022 Program',
+  skip = 7,
+  n_max = 96, #last session to date is ECR Mentoring on Nov 23rd
+  .name_repair = "unique",
+  trim_ws = TRUE)
+
+```
+
+```{r clean}
+
+df_all <- df %>%
+  select (c(Theme, `No. attended`, Session, Date, `Team / Provider`, `Presenter One`, `Presenter Two`)) %>%
+  rename (attended = `No. attended`)
+
+df_all$Theme <- as.factor(df_all$Theme)
+df_all$Session <- as.factor(df_all$Session)
+
+#### FILTER OUT SESSIONS THAT WE HAVEN'T RUN YET ####
+df_run <- df_all %>%
+  filter (attended != 'NA')
+
+```
+
+```{r sessions by theme}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+theme <- df %>%
+  group_by(Theme) %>%
+  summarise(`Number of Sessions` = n()) %>%
+  arrange (desc(`Number of Sessions`))
+
+# make it look good
+kable(theme, align = c('l', 'c'))
+
+```
+
+
+
+```{r attendees by theme}
+
+# how many attendees per theme
+attendees <- df %>%
+  group_by(Theme) %>%
+  summarise(`Number of Attendees` = sum(attended)) %>%
+  arrange (desc(`Number of Attendees`))
+
+# make it look good
+kable(attendees, align = c('l', 'c'))
+
+```
+
+
+```{r sessions and attendees by theme, include=TRUE}
+
+#combine sessions & attendees per theme
+both <- df %>%
+  group_by(Theme) %>%
+  summarise(`Number of Sessions` = n(),
+            `Number of Attendees` = sum(attended)) %>%
+  arrange (desc(`Number of Attendees`)) %>% 
+    adorn_totals("row")
+
+# both <- both %>% 
+#   adorn_totals("row")
+
+# make it look good
+kable(both, 
+      booktabs = T,
+      align = c('lcc'), 
+      caption = "Training and Development Summary for 2022", 
+      linesep = "\\addlinespace") %>% 
+  kable_styling(latex_options = c("hold_position", "striped")) 
+
+# %>% 
+#   add_footnote("The Final Tally for 2021", 
+#                notation = "none")
+
+```
+
+
+```{r sessions and names by theme}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+theme_sessions <- df %>%
+  group_by(Theme) %>% 
+  select(c(Theme, Session, attended)) %>% 
+  arrange(Theme)
+
+# make it look good
+kable(theme_sessions, 
+      booktabs = T,
+      align = c('llc')) %>% 
+        column_spec (column = 2, width = "12cm") %>% 
+    kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+
+```{r sessions and names by fund, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+fund_sessions <- df %>%
+  filter(Theme == "Fund and Apply") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  fund_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Fund and Apply Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+\clearpage
+
+```{r sessions and names by comm, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+comm_sessions <- df %>%
+  filter(Theme == "Communicate") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  comm_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Communicate Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by dvcr, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+dvcr_sessions <- df %>%
+  filter(Theme == "DVCR") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  dvcr_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "DVC(R) Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by ethics, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+ethics_sessions <- df %>%
+  filter(Theme == "Integrity and Ethics") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  ethics_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Integrity and Ethics Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by consult, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+consult_sessions <- df %>%
+  filter(Theme == "Consultation") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  consult_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Consultation Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by internal, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+internal_sessions <- df %>%
+  filter(Theme == "Internal") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  internal_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Internal Sessions for RDS Staff",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by faststart, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+fs_sessions <- df %>%
+  filter(Theme == "FastStart") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  fs_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "FastStart Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+\clearpage
+
+```{r sessions and names by benchmark, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+bench_sessions <- df %>%
+  filter(Theme == "Benchmark") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  bench_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Benchmarking Your Research Career Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by dev, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+dev_sessions <- df %>%
+  filter(Theme == "Development") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  dev_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Development Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by prizes, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+prize_sessions <- df %>%
+  filter(Theme == "Prizes and Awards") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  prize_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Prizes and Awards Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+
+
+
+
+
+
+

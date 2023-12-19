@@ -1,0 +1,729 @@
+---
+title: "Researcher Training and Development Sessions for 2023"
+subtitle: "Enrolment and Attendance Statistics by College (as of 1 December 2023)"
+#author: "Jen Beaudry"
+#date: "19/10/2023"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+header-includes:
+  - \usepackage{caption}
+  - \usepackage{titling}
+    \setlength{\droptitle}{-2cm} # removes some of the white space above title
+  - \pretitle{\begin{center}
+    \includegraphics[width=1.5in, height=1.5in]{flinders-university-horizontal-master.png}\LARGE\\} # adds logo
+  - \posttitle{\end{center}}
+  - \usepackage{fancyhdr}
+  - \fancypagestyle{plain}{\pagestyle{fancy}} # sets the footer on page 1
+  - \pagestyle{fancy} # sets the footer on page 2 and beyond
+  - \fancyhf{} # clears existing header & footer
+  - \renewcommand{\headrulewidth}{0pt} # removes the line from the header
+  - \fancyfoot[L]{Jen Beaudry} # my name in footer
+  - \fancyfoot[R]{\thepage} # page number in foooter
+---
+
+# THIS ALL NEEDS TO BE UPDATED == REMOVE THE CODE FROM THE IENROL CODING FIRST AND THEN WORK ON THE SPREADSHEET STUFF
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,
+                      include = FALSE, 
+                      eval = FALSE)
+
+```
+
+```{r library, eval=TRUE}
+
+library(here)
+library(tidyverse)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(rmarkdown)
+library(ggrepel) #for annotations in ggplot
+
+```
+
+```{r load training data, eval=FALSE}
+
+df <- read_xlsx(
+  here::here("data",
+             "2023_training_data.xlsx"),
+  sheet = '2023 Program',
+  skip = 7,
+  n_max = 99,  #last session to date ethics on Dec 1
+  .name_repair = "unique",
+  trim_ws = TRUE)
+
+```
+
+
+```{r clean data, eval=TRUE}
+
+df <- df_full %>%
+  select (c(course_name, event_num, first_name, last_name, fan, department, job_status, status)) 
+
+# turn them into factors
+
+cols <- c("course_name",
+          "event_num",
+             "department",
+             "job_status",
+             "status")
+
+# recode status and department
+
+df <- df %>% 
+  dplyr::mutate(across(all_of(cols), ~factor(.))) %>% 
+  dplyr::mutate(attendance_status = case_when (status == "attended" ~ "Attended", 
+                                        status == "didnotattend" ~ "Did not attend")) %>% 
+  dplyr::mutate(portfolio = case_when (grepl("Research", department) ~ "Portfolio of the Deputy Vice-Chancellor (Research)", #recode RDS as DVC(R)
+                                    !grepl("College of", department) ~ "Other portfolios",
+                                    department == "Other" ~ "Other",
+                                    department == "Unknown" ~ "Other", 
+                                    TRUE ~ as.factor(as.character(department))))
+
+
+# summarise the data based on how many courses were held (and )
+
+n_courses <- df %>% count(course_name, event_num)
+
+
+# this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
+
+n_attendees <- df %>%
+  filter(attendance_status == "Attended") %>% 
+  count(fan, course_name, event_num)
+
+n_unique_attendees <- n_distinct(n_attendees$fan)
+
+
+df_portfolios <- df %>% 
+  filter (portfolio == "Other portfolios") %>% 
+  count(department) %>% 
+  arrange(-n)
+
+n_portfolios <- unique(df_portfolios$department)
+
+attended <- df %>% filter(attendance_status == "Attended")
+not_attended <- df %>% filter(attendance_status == "Did not attend")
+
+
+```
+
+
+As of 19 October 2023, we have offered `r nrow(n_courses)` training information 
+sessions and development workshops to researchers and research support
+staff at Flinders University. 
+
+In addition to the Colleges, we have included information for professional staff
+in the Portfolio of the Deputy Vice-Chancellor (Research). We have collapsed all 
+other portfolios in the University into a single "Other portfolios" because of the 
+large number of portfolios that our registrants represent (including Library, 
+Information and Digital Services, and people who are not aligned with any portfolio
+in the ienrol system). 
+
+Below is a breakdown of how many people enrolled in 
+these sessions across the Colleges, as well as details about how many of those 
+attended and did not attend the sessions. Overall, across all Colleges and 
+portfolios, the average attendance rate for 
+2023 was `r round(((nrow(attended)/(nrow(attended) + nrow(not_attended)))*100), 2)`%.
+
+\vskip 0.3in
+
+\captionsetup[table]{labelformat=empty}
+
+
+```{r plot the ienrol attendance rate, include = TRUE, eval=TRUE, fig.width = 12, fig.height = 9}
+
+#combine sessions & attendees & attendance rate per portfolio
+df_grouped <- df %>%
+  count(portfolio, attendance_status) %>% 
+    group_by(portfolio) %>% 
+    mutate(att_pct = (n/sum(n)) *100) %>%
+    mutate(enrol = sum(n))
+
+
+# add in the attendance label here & rearrange it so it matches the data (which will be reordered in ggplot)
+df_label <- df_grouped %>% 
+   dplyr::mutate(
+  perc_label = paste0(sprintf("\n\nAttendance rate = %1.1f", att_pct), "%"), 
+  port_perc_label = paste(portfolio, perc_label)) %>% 
+  filter(attendance_status == "Attended") %>% 
+  arrange(n)
+
+
+#use this to reorder the attendance factor within the ggplot code 
+attend <- c("Did not attend", "Attended")
+
+
+# plot it [this has attendance & non-attendance numbers & attendance rates in the names for the portfolios]
+ggplot(df_grouped, aes(
+  x = reorder(portfolio, n),
+  fill = factor(attendance_status, levels = attend),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black") +
+  geom_text(aes(y = n,
+                x = portfolio,
+                label = n),
+            position = position_stack(vjust = 0.5),
+            size = 4) +
+  coord_flip() +
+  labs (title = "Attendance by College and Portfolios (2023)", 
+        x = element_blank(),
+        y = "Number of enrolments") +
+  theme_classic() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = c(0.8, 0.2),
+    title = element_text(size = 14, family="sans"),
+    legend.text = element_text(size = 12, family="sans"),
+    axis.text = element_text(size = 12, family ="sans"), 
+    axis.title = element_text(size = 12, family = "sans") 
+    ) +
+  scale_fill_manual(
+    values = c("#bfbfbf", "#90b8da"),
+    labels = c("Did not attend", "Attended"),
+    guide = guide_legend (reverse = TRUE)
+  ) +
+  scale_x_discrete(
+    labels = df_label$port_perc_label) 
+
+
+# ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance rates by portfolio.png"))
+
+```
+
+By far, the largest number of enrolments
+and attendees were in the College of Medicine and Public Health, which is 
+representative of the large number of researchers and research support staff in 
+that College. The highest attendance rate was in staff in the Portfolio of the 
+Deputy Vice-Chancellor (Research), which includes Research Development and Support 
+and the Strategic Partnerships Team. 
+
+
+```{r plot the ienrol attendance, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
+
+# count attendees rate per portfolio
+df_attend <- df %>%
+  filter(attendance_status == "Attended") %>% 
+  count(portfolio)
+
+
+# plot it [this has attendance numbers by the portfolios]
+ggplot(df_attend, aes(
+  x = reorder(portfolio, n),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black", fill = "#90b8da") +
+  geom_text(aes(y = n,
+                x = portfolio,
+                label = n),
+            position = position_stack(vjust = 0.5),
+            size = 4) +
+  coord_flip() +
+  labs (title = "Number of Attendees in Training & Development Sessions (2023)", 
+        x = element_blank(),
+        y = "Number of attendees") +
+  theme_classic() +
+  theme(
+    title = element_text(size = 14, family="sans"),
+    legend.text = element_text(size = 12, family="sans"),
+    axis.text = element_text(size = 12, family ="sans"), 
+    axis.title = element_text(size = 12, family = "sans") 
+    ) +
+  scale_fill_manual(
+    values = "#90b8da"
+  ) 
+ # scale_x_discrete(
+ #   labels = df_label$port_perc_label) 
+
+
+ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance by portfolio.png"))
+
+```
+
+
+```{r graveyard from plot the ienrol attendance, eval=FALSE}
+
+#combine sessions & attendees & attendance rate per portfolio
+df_grouped <- df %>%
+  count(portfolio, attendance_status) %>% 
+    group_by(portfolio) %>% 
+    mutate(att_pct = (n/sum(n)) *100) %>%
+    mutate(enrol = sum(n))
+
+# add in the attendance label here
+df_label <- df_grouped %>% 
+   dplyr::mutate(
+  perc_label = paste0(sprintf("\n\nAttendance rate = %1.1f", att_pct), "%"), 
+  port_perc_label = paste(portfolio, perc_label)) %>% 
+  filter(attendance_status == "Attended") %>% 
+  arrange(n)
+
+#vector_paste_vertical(df_label$port_perc_label)
+
+# rearrange so it aligns with 
+my.labels <-
+  c(
+    "College of Business, Government and Law \n\nAttendance rate = 72.2%",
+    "College of Education, Psychology and Social Work \n\nAttendance rate = 64.1%",
+    "College of Humanities, Arts and Social Sciences \n\nAttendance rate = 76.3%",
+    
+    "College of Nursing and Health Sciences \n\nAttendance rate = 67.9%",
+    "College of Science and Engineering \n\nAttendance rate = 66.5%",
+    "Deputy Vice-Chancellor (Research) \n\nAttendance rate = 83.4%",
+    "Other portfolios \n\nAttendance rate = 70.0%"
+    "College of Medicine and Public Health \n\nAttendance rate = 70.0%",
+  )
+
+
+#port_perc_label = paste(portfolio, perc_label)))
+
+    # perc_label = ifelse(portfolio == "College of Medicine and Public Health", 
+   #                      paste0(sprintf("\n\nAttendance rate = %1.1f", att_pct), "%"), ),
+# paste(df_grouped$port_perc_label)
+
+    # perc_label = ifelse(portfolio == "College of Medicine and Public Health", paste0("attendance rate = ", perc_label), perc_label))
+
+#use this to reorder the factor within the ggplot code 
+attend <- c("Did not attend", "Attended")
+my.labels <- if_else(df_grouped$attendance_status == "Attended", df_grouped$port_perc_label, "")
+
+
+
+
+# plot it [explain code here]
+
+
+
+ggplot(df_grouped, aes(x = reorder(portfolio, n),
+  fill = factor(attendance_status, levels = attend),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black") +
+  geom_text(
+    aes(
+      y = n,
+      x = portfolio,
+      label = n
+    ),
+    position = position_stack(vjust = 0.5),
+    size = 3
+  ) +
+  coord_flip() +
+  labs (x = element_blank(),
+        y = "Count") +
+  theme_classic() +
+  theme(legend.title = element_blank(), 
+        legend.position = c(0.8, 0.2), 
+        legend.text = element_text(size = 12)) + 
+  scale_fill_manual(values = c("#bfbfbf", "#90b8da"),
+                 labels = c("Did not attend", "Attended"),
+                   guide = guide_legend (reverse = TRUE)) +
+  scale_x_discrete(labels = df_label$port_perc_label)
+
+
+  geom_text(aes(
+    label = ifelse(attendance_status == "Did not attend", "", perc_label) 
+    # vjust = -2, 
+    # hjust = -2
+  ))
+  
+  
+  
+  scale_y_continuous(name = paste0(portfolio, perc_label))
+
+
+  geom_text(aes(
+    label = ifelse(attendance_status == "Did not attend", "", perc_label)),
+    hjust = 5)
+
+
+  geom_text(aes(
+    label = ifelse(attendance_status == "Did not attend", "", (paste0(
+        sprintf("attendance rate = %1.1f", att_pct), "%")))),
+    position = position_stack(vjust = 1)) +
+  scale_x_continuous(name = paste0(sprintf("%", portfolio, "\nattendance rate = %1.1f", att_pct), "%"))
+
+
+# plot it [this works & shows the attendance rate on the bar & the total enrolment on the side]
+
+
+f <- ggplot(df_grouped, aes(x = reorder(portfolio, n),
+  fill = factor(attendance_status, levels = attend),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black") +
+  geom_text(
+    aes(
+      y = n,
+      x = portfolio,
+      label = ifelse(attendance_status == "Did not attend", "", (paste0(
+        sprintf("%1.1f", att_pct), "%"
+      )))
+    ),
+    position = position_stack(vjust = 0.5),
+    size = 3
+  ) +
+  coord_flip() +
+  labs (x = element_blank(),
+        y = "Count") +
+  theme_classic() +
+  theme(legend.title = element_blank()) +
+  scale_fill_manual(values = c("#bfbfbf", "#90b8da"),
+                 labels = c("Did not attend", "Attended"),
+                   guide = guide_legend (reverse = TRUE)) +
+  geom_text(aes(
+    label = ifelse(attendance_status == "Did not attend", enrol, "")),
+    position = position_stack(vjust = 1.3))
+
+
+
+```
+
+
+```{r sessions by theme,eval=FALSE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+theme <- df %>%
+  group_by(Theme) %>%
+  summarise(`Number of Sessions` = n()) %>%
+  arrange (desc(`Number of Sessions`))
+
+# make it look good
+kable(theme, align = c('l', 'c'))
+
+```
+
+
+```{r attendees by theme, eval = FALSE}
+
+# how many attendees per theme
+attendees <- df %>%
+  group_by(Theme) %>%
+  summarise(`Number of Attendees` = sum(attended)) %>%
+  arrange (desc(`Number of Attendees`))
+
+# make it look good
+kable(attendees, align = c('l', 'c'))
+
+```
+
+
+```{r sessions and attendees by theme, include=TRUE, eval = FALSE}
+
+#combine sessions & attendees per theme
+both <- df %>%
+  group_by(Theme) %>%
+  summarise(`Number of Sessions` = n(),
+            `Number of Attendees` = sum(attended)) %>%
+  arrange (desc(`Number of Attendees`)) %>% 
+    adorn_totals("row")
+
+# both <- both %>% 
+#   adorn_totals("row")
+
+# make it look good
+kable(both, 
+      booktabs = T,
+      align = c('lcc'), 
+      caption = "Training and Development Summary for 2022", 
+      linesep = "\\addlinespace") %>% 
+  kable_styling(latex_options = c("hold_position", "striped")) 
+
+# %>% 
+#   add_footnote("The Final Tally for 2021", 
+#                notation = "none")
+
+```
+
+
+```{r sessions and names by theme}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+theme_sessions <- df %>%
+  group_by(Theme) %>% 
+  select(c(Theme, Session, attended)) %>% 
+  arrange(Theme)
+
+# make it look good
+kable(theme_sessions, 
+      booktabs = T,
+      align = c('llc')) %>% 
+        column_spec (column = 2, width = "12cm") %>% 
+    kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+
+```{r sessions and names by fund, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+fund_sessions <- df %>%
+  filter(Theme == "Fund and Apply") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  fund_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Fund and Apply Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+\clearpage
+
+```{r sessions and names by comm, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+comm_sessions <- df %>%
+  filter(Theme == "Communicate") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  comm_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Communicate Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by dvcr, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+dvcr_sessions <- df %>%
+  filter(Theme == "DVCR") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  dvcr_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "DVC(R) Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by ethics, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+ethics_sessions <- df %>%
+  filter(Theme == "Integrity and Ethics") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  ethics_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Integrity and Ethics Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by consult, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+consult_sessions <- df %>%
+  filter(Theme == "Consultation") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  consult_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Consultation Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by internal, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+internal_sessions <- df %>%
+  filter(Theme == "Internal") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  internal_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Internal Sessions for RDS Staff",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by faststart, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+fs_sessions <- df %>%
+  filter(Theme == "FastStart") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  fs_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "FastStart Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+\clearpage
+
+```{r sessions and names by benchmark, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+bench_sessions <- df %>%
+  filter(Theme == "Benchmark") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  bench_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Benchmarking Your Research Career Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by dev, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+dev_sessions <- df %>%
+  filter(Theme == "Development") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  dev_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Development Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+```{r sessions and names by prizes, include=TRUE}
+
+# decide whether I want the full data set (df_all) or just the sessions
+  # we've run to date (df_run)
+df <- df_run
+
+# how many sessions per theme
+prize_sessions <- df %>%
+  filter(Theme == "Prizes and Awards") %>% 
+  select(c(Session, attended)) %>% 
+  arrange(desc(attended))
+
+# make it look good
+kable(
+  prize_sessions,
+  booktabs = T,
+  linesep = "\\addlinespace",
+  caption = "Prizes and Awards Sessions",
+  align = c('lc'),
+  col.names = c("Session", "Number of Attendees")) %>%
+  column_spec (column = 1, width = "12cm") %>%
+  kable_styling(latex_options = c("hold_position", "striped"))
+
+```
+
+
+
+
+
+
+
+
