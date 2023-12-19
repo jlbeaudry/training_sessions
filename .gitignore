@@ -3,3 +3,4 @@ data/
 *.xlxs 
 *.csv 
 .Rproj.user/ 
+*.log 
