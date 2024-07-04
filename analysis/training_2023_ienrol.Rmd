@@ -1,8 +1,8 @@
 ---
 title: "Researcher Training and Development Sessions for 2023"
-#subtitle: "Enrolment and Attendance Statistics by College (as of December 2023)"
+#subtitle: "Enrolment and Attendance Statistics by College"
 #author: "Jen Beaudry"
-#date: "19/10/2023"
+#date: "4/07/2024"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
