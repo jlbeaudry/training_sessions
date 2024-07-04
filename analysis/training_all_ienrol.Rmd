@@ -1,6 +1,6 @@
 ---
 title: "Researcher Training and Development Sessions for 2021 to mid-2024"
-#subtitle: "Enrolment and Attendance Statistics by College"
+subtitle: "Enrolment and Attendance Statistics by College"
 #author: "Jen Beaudry"
 #date: "19/10/2023"
 output: pdf_document
@@ -45,33 +45,39 @@ box::use(plyr[count])
 
 ```{r load ienrol data, eval=TRUE}
 
+# load data, add date, and select relevant variables
 
-dfi_2024 <- read_csv(here::here("data", "mid_2024_ienrol_data.csv"), lazy = FALSE) %>% 
-  clean_names()
+dfi_24 <- read_csv(here::here("data", "mid_2024_ienrol_data.csv"), lazy = FALSE) %>% 
+  clean_names() %>% 
+  mutate (year = "2024") %>% 
+  relocate(year) %>% 
+  select (c(year, course_name, event_num, date, first_name, last_name, fan, department, job_status, status)) 
 
-dfi_2023 <- read_csv(here::here("data", "2023_ienrol_data.csv"), lazy = FALSE) %>% 
-  clean_names()
+dfi_23 <- read_csv(here::here("data", "2023_ienrol_data.csv"), lazy = FALSE) %>% 
+  clean_names() %>% 
+  mutate (year = "2023") %>% 
+  relocate(year) %>%
+  select (c(year, course_name, event_num, date, first_name, last_name, fan, department, job_status, status)) 
 
-dfi_2022 <- read_csv(here::here("data", "2022_ienrol_data.csv"), lazy = FALSE) %>% 
-  clean_names()
+dfi_22 <- read_csv(here::here("data", "2022_ienrol_data.csv"), lazy = FALSE) %>% 
+  clean_names() %>% 
+  mutate (year = "2022") %>% 
+  relocate(year) %>%
+  select (c(year, course_name, event_num, date, first_name, last_name, fan, department, job_status, status)) 
 
-dfi_2021 <- read_csv(here::here("data", "2021_ienrol_data.csv"), lazy = FALSE) %>% 
-  clean_names()
+dfi_21 <- read_csv(here::here("data", "2021_ienrol_data.csv"), lazy = FALSE) %>% 
+  clean_names() %>% 
+  mutate (year = "2021") %>% 
+  relocate(year) %>%
+  select (c(year, course_name, event_num, date, first_name, last_name, fan, department, job_status, status)) 
 
 ```
 
 ```{r clean data}
 
-# get year data
+# combine all into 1 file
 
-dfi_full <- dfi_full %>% 
-  mutate("year" = lubridate::year(dfi_full$date)) %>% 
-  relocate (year)
-
-# select relevant variables 
-
-dfi <- dfi_full %>%
-  select (c(year, course_name, event_num, first_name, last_name, fan, department, job_status, status)) 
+dfi_all <- list(dfi_21, dfi_22, dfi_23, dfi_24) %>% reduce(full_join)
 
 # turn them into factors
 
@@ -83,8 +89,17 @@ cols <- c("year",
              "status")
 
 
-dfi <- dfi %>% 
+dfi_all <- dfi_all %>% 
   dplyr::mutate(across(all_of(cols), ~factor(.)))
+
+
+# add in month variable
+dfi_all <- dfi_all %>% 
+  mutate("date" = dmy(dfi_all$date)) %>% 
+  mutate("month" = month(dfi_all$date)) %>% 
+  relocate (month, .after = year)
+
+
 
 ```
 
@@ -162,7 +177,7 @@ rm(df_remove1, df_remove2, df_remove3, df_remove4, df_remove5, df_remove_a)
 
 # recode status and department
 
-dfi <- dfi %>% 
+dfi_all <- dfi_all %>% 
   dplyr::mutate(attendance_status = case_when (status == "attended" ~ "Attended", 
                                         status == "didnotattend" ~ "Did not attend")) %>% 
   dplyr::mutate(portfolio = case_when (grepl("Research", department) ~ "Portfolio of the Deputy Vice-Chancellor (Research)", #recode RDS as DVC(R)
@@ -174,16 +189,136 @@ dfi <- dfi %>%
 
 # summarise the data based on how many courses were held and how many folks attended each of the sessions
 
-n_courses <- dfi %>% 
+n_courses <- dfi_all %>% 
   filter(attendance_status == "Attended") %>% 
-  count(course_name, event_num)
+  dplyr::count(year, course_name, event_num)
 
 
 # this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
 
-n_attendees <- dfi %>%
+n_attendees <- dfi_all %>%
   filter(attendance_status == "Attended") %>% 
-  count(year, fan, course_name, event_num)
+  dplyr::count(year, fan, course_name, event_num)
+
+# attendees by year
+year_attendees <- plyr::count(n_attendees, "year")
+
+# unique attendees 
+n_unique_attendees <- n_distinct(n_attendees$fan)
+
+# attendees 
+
+# all attendees broken down by College
+
+df_portfolios <- dfi_all %>% 
+  filter (portfolio == "Other portfolios") %>% 
+  dplyr::count(department) %>% 
+  arrange(-n)
+
+n_portfolios <- unique(df_portfolios$department)
+
+
+
+# Attendance status
+
+attended <- dfi_all %>% filter(attendance_status == "Attended")
+not_attended <- dfi_all %>% filter(attendance_status == "Did not attend")
+
+
+```
+
+
+```{r enrolment and attendance data, eval=TRUE}
+
+# summarise the data based on how many courses were held and how many folks enrolled in each of the sessions
+
+n_courses <- dfi_all %>% 
+  group_by(attendance_status) %>% 
+  dplyr::count(year, month)
+
+summary <- n_courses %>% 
+  pivot_wider(names_from = attendance_status, values_from = n) %>% 
+  mutate ("month" = as.character(month)) %>%  # we need to do this so it's not included in the total
+  adorn_totals("col") %>% 
+  mutate ("attendance_rate" = round((`Attended`/`Total`)*100,2)) 
+
+
+# now get the summary data by month so we group it that way in the graph
+
+df <- dfi_all %>% 
+    group_by(month = floor_date(date, unit = "month"), attendance_status) %>% 
+   dplyr::count(year, month) %>% 
+    pivot_wider(names_from = attendance_status, values_from = n) %>% 
+    adorn_totals("col") %>% 
+  mutate ("attendance_rate" = round((`Attended`/`Total`)*100,2)) %>% 
+  mutate ("attendance_prop" = round((`Attended`/`Total`),2))
+
+
+# I AM NOT YET USING THIS...
+
+# all attendees broken down by College
+# 
+# df_portfolios <- dfi %>% 
+#   filter (portfolio == "Other portfolios") %>% 
+#   count(department) %>% 
+#   arrange(-n)
+# 
+# n_portfolios <- unique(df_portfolios$department)
+# 
+# # Attendance status
+# 
+# attended <- dfi %>% filter(attendance_status == "Attended")
+# not_attended <- dfi %>% filter(attendance_status == "Did not attend")
+
+
+```
+
+
+```{r graph by month}
+
+# this works to show the data grouped by year and month
+
+ggplot(df, aes(x = month, y = Total)) + 
+  geom_bar(stat = "identity") + 
+  scale_x_date(NULL, date_labels = "%b %y", breaks = "month")
+
+
+# trying to add the attendance rate as a line
+
+ggplot(df) +
+  geom_bar(aes(x = month, y = Total), stat = "identity") +
+  geom_line(aes(x = month, y = 100*attendance_rate), stat = "identity", color = "red", linewidth = 2) +
+scale_x_date(NULL, date_labels = "%b %y", breaks = "month") + 
+  scale_y_continuous(sec.axis=sec_axis(~.*0.01, name = "Percentage"))
+
+
+# trying to add the attendance rate as a line [breadcrumb: the secondary axis is off; need to play with it more]
+
+#https://www.geeksforgeeks.org/combine-bar-and-line-chart-in-ggplot2-in-r/
+  
+ggplot(df) +
+  geom_bar(aes(x = month, y = Total), stat = "identity") +
+  geom_line(aes(x = month, y = 100*attendance_prop), stat = "identity", color = "red", linewidth = 2) +
+scale_x_date(NULL, date_labels = "%b %y", breaks = "month") + 
+  scale_y_continuous(sec.axis=sec_axis(~.*0.01, name = "Percentage"))
+
+```
+
+
+```{r attendance data, eval=FALSE}
+# I DON'T YET KNOW IF I NEED THIS DATA
+
+# summarise the data based on how many courses were held and how many folks attended each of the sessions
+
+n_courses <- dfi_all %>% 
+  filter(attendance_status == "Attended") %>% 
+  dplyr::count(year, course_name, event_num)
+
+# this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
+
+n_attendees <- dfi_all %>%
+  filter(attendance_status == "Attended") %>% 
+  dplyr::count(year, fan, course_name, event_num)
 
 # attendees by year
 year_attendees <- plyr::count(n_attendees, "year")
@@ -202,8 +337,6 @@ df_portfolios <- dfi %>%
 
 n_portfolios <- unique(df_portfolios$department)
 
-
-
 # Attendance status
 
 attended <- dfi %>% filter(attendance_status == "Attended")
@@ -212,7 +345,9 @@ not_attended <- dfi %>% filter(attendance_status == "Did not attend")
 
 ```
 
-## Summary 
+
+
+## Summary [needs to be updated]
 
 In 2023, the Training, Development and Communication team in Research
 Development and Support have offered `r nrow(n_courses)` information 
@@ -263,37 +398,43 @@ and the Strategic Partnerships Team.
 
 ```{r plot the ienrol attendance rate, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
 
-#combine sessions & attendees & attendance rate per portfolio
-df_grouped <- dfi %>%
-  count(portfolio, attendance_status) %>% 
+# combine sessions & attendees & attendance rate per portfolio
+df_grouped <- dfi_all %>%
+  dplyr::count(portfolio,attendance_status) %>% 
     group_by(portfolio) %>% 
     mutate(att_pct = (n/sum(n)) *100) %>%
     mutate(enrol = sum(n))
 
 
+# figure out how to plot the data by the dates
+
+df <- summary %>% 
+  group_by(month = floor_date(month, unit = "month"))
+
+
+
 # add in the attendance label here & rearrange it so it matches the data (which will be reordered in ggplot)
-df_label <- df_grouped %>% 
-   dplyr::mutate(
-  perc_label = paste0(sprintf("\n\nAttendance rate = %1.1f", att_pct), "%"), 
-  port_perc_label = paste(portfolio, perc_label)) %>% 
-  filter(attendance_status == "Attended") %>% 
-  arrange(n)
+# df_label <- df_grouped %>% 
+#    dplyr::mutate(
+#   perc_label = paste0(sprintf("\n\nAttendance rate = %1.1f", att_pct), "%"), 
+#   port_perc_label = paste(portfolio, perc_label)) %>% 
+#   filter(attendance_status == "Attended") %>% 
+#   arrange(n)
 
 
 #use this to reorder the attendance factor within the ggplot code 
 attend <- c("Did not attend", "Attended")
 
 
-# plot it [this has attendance & non-attendance numbers & attendance rates in the names for the portfolios]
-ggplot(df_grouped, aes(
-  x = reorder(portfolio, n),
-  fill = factor(attendance_status, levels = attend),
-  y = n
+# plot it [this has enrollment & attendance rates across the months and years]
+ggplot(summary, aes(
+  x = (year, month),
+  y = Total
 )) +
   geom_bar(stat = "identity", colour = "black") +
-  geom_text(aes(y = n,
-                x = portfolio,
-                label = n),
+  geom_text(aes(y = Total,
+                x = year, month,
+                label = Total),
             position = position_stack(vjust = 0.5),
             size = 6) +
   coord_flip() +

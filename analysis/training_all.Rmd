@@ -125,8 +125,6 @@ df_19 <- df_19 %>%
 
 df_all <- list(df_19, df_20, df_21, df_22, df_23) %>% reduce(full_join)
 
-
-
 ```
 
 
