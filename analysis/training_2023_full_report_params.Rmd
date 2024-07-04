@@ -1,0 +1,582 @@
+---
+title: "Researcher Training and Development Sessions for 2023"
+#subtitle: "Enrolment and Attendance Statistics for EPSW"
+#author: "Jen Beaudry"
+#date: "19/10/2023"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+params: 
+  portfolio: "College of Education, Psychology and Social Work"
+  printcode: FALSE 
+header-includes:
+  - \usepackage{caption}
+  - \usepackage{titling}
+    \setlength{\droptitle}{-2cm} # removes some of the white space above title
+  - \pretitle{\begin{center}
+    \includegraphics[width=1.5in, height=1.5in]{flinders-university-horizontal-master.png}\LARGE\\} # adds logo
+  - \posttitle{\end{center}}
+  - \usepackage{fancyhdr}
+  - \fancypagestyle{plain}{\pagestyle{fancy}} # sets the footer on page 1
+  - \pagestyle{fancy} # sets the footer on page 2 and beyond
+  - \fancyhf{} # clears existing header & footer
+  - \renewcommand{\headrulewidth}{0pt} # removes the line from the header
+  - \fancyfoot[L]{Jen Beaudry} # my name in footer
+  - \fancyfoot[R]{\thepage} # page number in foooter
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,
+                      include = FALSE, 
+                      eval = TRUE)
+
+```
+
+```{r library, eval=TRUE}
+
+library(here)
+library(tidyverse)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(rmarkdown)
+library(ggrepel) #for annotations in ggplot
+library(captioner)
+
+```
+
+```{r functions}
+
+styler_pdf <- function(dat) {
+  dat %>%
+     kable_styling(full_width = F, 
+                latex_options = c("striped", "HOLD_position"))
+}
+
+table_nums <- captioner(prefix = "Table")
+fig_nums <- captioner(prefix = "Figure")
+
+```
+
+
+```{r load training data}
+
+# load data from training spreadsheet (this is the complete number of attendees
+  # & includes info about the theme)
+
+df_sp <- read_xlsx(
+  here::here("data",
+             "2023_training_data.xlsx"),
+  sheet = '2023 Program',
+  skip = 7,
+  n_max = 102,  #last session Cruxes on Dec 12
+  .name_repair = "unique",
+  trim_ws = TRUE)
+
+# load data from ienrol (this contains names of Flinders attendees & includes college/portfolio info)
+
+df_ienrol <- read_csv(here::here("data", "2023_ienrol_data.csv"), lazy = FALSE) %>% 
+  clean_names()
+
+```
+
+```{r delete sessions that did not run}
+
+# delete the sessions that were scheduled but not run [will need to compare to our training spreadsheet]
+  # use the n_courses code in the next chunk to make it easy to figure out which sessions didn't run
+
+df_remove1 <- df_ienrol %>% 
+  filter(course_name == "Open Research Practices" & event_num == "2")
+
+df_remove2 <- df_ienrol %>% 
+  filter(course_name == "The Strategic Researcher") 
+
+df_remove3 <- df_ienrol %>% 
+  filter(course_name == "Foreign Interactions Information for Researchers") 
+
+df_remove4 <- df_ienrol %>% 
+  filter(course_name == "ARC DECRA Development Session")
+
+df_remove5 <- df_ienrol %>% 
+  filter(course_name == "NHMRC Investigator Grants Information Session" & event_num == "1")
+
+df_remove_a <- full_join(df_remove1, df_remove2)
+df_remove_a <- full_join(df_remove_a, df_remove3)
+df_remove_a <- full_join(df_remove_a, df_remove4)
+df_remove_a <- full_join(df_remove_a, df_remove5)
+
+df_ienrol <- anti_join (df_ienrol, df_remove_a)
+
+rm(df_remove1, df_remove2, df_remove3, df_remove4, df_remove5, df_remove_a)
+
+```
+
+```{r clean ienrol data}
+
+# [breadcrumbs: when I have a chance I should move the preprocessing into a separate script]
+
+df_ienrol <- df_ienrol %>%
+  select (c(course_name, event_num, first_name, last_name, fan, department, job_status, status)) 
+
+# turn them into factors
+
+cols <- c("course_name",
+          "event_num",
+             "department",
+             "job_status",
+             "status")
+
+# recode status and department
+
+df_ienrol <- df_ienrol %>% 
+  dplyr::mutate(across(all_of(cols), ~factor(.))) %>% 
+  dplyr::mutate(attendance_status = case_when (status == "attended" ~ "Attended", 
+                                        status == "didnotattend" ~ "Did not attend")) %>% 
+  dplyr::mutate(portfolio = factor(case_when (grepl("Research", department) ~ "Portfolio of the Deputy Vice-Chancellor (Research)", #recode RDS as DVC(R)
+                                    !grepl("College of", department) ~ "Other portfolios",
+                                    department == "Other" ~ "Other",
+                                    department == "Unknown" ~ "Other", 
+                                    TRUE ~ as.factor(as.character(department)))))
+
+
+# summarise the data based on how many courses were held and how many folks attended each of the sessions
+
+n_courses <- df_ienrol %>% 
+  filter(attendance_status == "Attended") %>% 
+  count(course_name, event_num)
+
+
+# this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
+
+df_ienrol_att <- df_ienrol %>%
+  filter(attendance_status == "Attended")
+
+# unique attendees 
+n_unique_attendees_ienrol <- n_distinct(df_ienrol_att$fan)
+
+
+# all attendees broken down by College
+
+df_portfolios <- df_ienrol_att %>% 
+  filter (portfolio == "Other portfolios") %>% 
+  count(department) %>% 
+  arrange(-n)
+
+n_portfolios <- unique(df_portfolios$department)
+
+# Attendance status
+
+attended <- df_ienrol %>% filter(attendance_status == "Attended")
+not_attended <- df_ienrol %>% filter(attendance_status == "Did not attend")
+
+# [breadcrumb: inline text with college details]
+# Within the College of Education, Psychology and Social Work, 
+# `r sum(df_ienrol_att$portfolio=="College of Education, Psychology and Social Work")`
+
+```
+
+```{r clean spreadsheet data}
+
+df_sp <- df_sp %>% 
+  select(c(Theme, `No. attended`, Session)) %>% 
+    dplyr::rename("Attended" = "No. attended")
+
+
+# this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
+
+n_attended_sp <- sum(df_sp$Attended)
+
+```
+
+```{r captions}
+
+# use these to provide the captions and numbers for the figures 
+# use kable captions to provide the captions for the Tables, but use the captioner package
+  # to be able to reference the tables within the text
+
+fig_nums(name = "college_attendees", 
+         caption = "Number of Attendees in Training & Development Sessions (2023)")
+
+fig_nums(name = "college_unique_attendees", 
+         caption = "Number of Unique Attendees in Training & Development Sessions (2023)")
+
+table_nums(name = "theme_overview", 
+          caption = "Training and Development Summary for 2023")
+
+table_nums(name = "sessions_by_theme", 
+          caption = "Training and Development Sessions by Theme for 2023")
+
+```
+
+## Summary 
+
+In 2023, the Training, Development and Communication team in Research
+Development and Support have offered `r nrow(n_courses)` information 
+sessions and development workshops to researchers and research support
+staff at Flinders University. 
+
+From the Flinders community, `r nrow(df_ienrol_att)` people attended the research training and 
+development sessions in 2023. Our actual attendance numbers for the year are larger (*n* = `r sum(df_sp$Attended)`)
+because we allowed external researchers to join select sessions (e.g., Open 
+Research sessions; ARC Outreach sessions, etc.). Of the Flinders `r nrow(df_ienrol_att)` 
+attendees, `r n_unique_attendees_ienrol` were unique attendees, demonstrating 
+that a large number of people from the Flinders research community are engaging in 
+our research training and development program. 
+
+The number of attendees at our sessions varied from `r min(n_courses$n)` in a 
+hands-on ethics workshop to `r max(n_courses$n)` in a research grant writing workshop. 
+The mean number of attendees at our sessions was `r round(mean(n_courses$n),0)` 
+with a median of `r round(median(n_courses$n),0)`. 
+
+In this report, we first break down our enrolments by College and portfolio. We 
+then explore the topics of the sessions in more detail. We provide an overview
+of the number of sessions and number of attendees by theme, and then 
+report the number of attendees in each session organised by theme.
+
+## Number of Attendees by College and Portfolio
+
+`r fig_nums(name = "college_attendees", display = "cite")` illustrates how many people 
+attended these sessions across the Colleges and portfolios. By far, the largest 
+number of attendees were in the College of Medicine and Public Health, which is 
+representative of the large number of researchers in that College. 
+
+Most of the professional staff who attended our training and development sessions were 
+from the Portfolio of the Deputy Vice-Chancellor (Research). We collapsed all 
+other portfolios in the University into a single "Other portfolios" category 
+because of the large number of portfolios that our registrants represent 
+(including Library, Information and Digital Services, as well as people who are not 
+aligned with any portfolio in the iEnrol system). 
+
+Overall, across all Colleges and 
+portfolios, the average attendance rate for 
+2023 was `r round(((nrow(attended)/(nrow(attended) + nrow(not_attended)))*100), 2)`%.
+
+`r fig_nums(name = "college_unique_attendees", display = "cite")` illustrates the unique 
+number of attendees across the Colleges and portfolios. The College of Medicine 
+and Public Health also had the most unique attendees. 
+
+
+```{r plot the ienrol attendance with rate, eval=FALSE, fig.width = 15, fig.height = 9}
+
+#combine sessions & attendees & attendance rate per portfolio
+df_grouped <- df_ienrol %>%
+  count(portfolio, attendance_status) %>% 
+    group_by(portfolio) %>% 
+    mutate(att_pct = (n/sum(n)) *100) %>%
+    mutate(enrol = sum(n))
+
+
+# add in the attendance label here & rearrange it so it matches the data (which will be reordered in ggplot)
+df_label <- df_grouped %>% 
+   dplyr::mutate(
+  perc_label = paste0(sprintf("\n\nAttendance rate = %1.1f", att_pct), "%"), 
+  port_perc_label = paste(portfolio, perc_label)) %>% 
+  filter(attendance_status == "Attended") %>% 
+  arrange(n)
+
+
+#use this to reorder the attendance factor within the ggplot code 
+attend <- c("Did not attend", "Attended")
+
+
+# plot it [this has attendance & non-attendance numbers & attendance rates in the names for the portfolios]
+ggplot(df_grouped, aes(
+  x = reorder(portfolio, n),
+  fill = factor(attendance_status, levels = attend),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black") +
+  geom_text(aes(y = n,
+                x = portfolio,
+                label = n),
+            position = position_stack(vjust = 0.5),
+            size = 6) +
+  coord_flip() +
+  labs (title = "Attendance by College and Portfolios (2023)", 
+        x = element_blank(),
+        y = "Number of enrolments") +
+  theme_classic() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = c(0.8, 0.2),
+    title = element_text(size = 14, family="sans"),
+    legend.text = element_text(size = 14, family="sans"),
+    axis.text = element_text(size = 14, family ="sans"), 
+    axis.title = element_text(size = 14, family = "sans") 
+    ) +
+  scale_fill_manual(
+    values = c("#bfbfbf", "#90b8da"),
+    labels = c("Did not attend", "Attended"),
+    guide = guide_legend (reverse = TRUE)
+  ) +
+  scale_x_discrete(
+    labels = df_label$port_perc_label) 
+
+
+#ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance rates by portfolio.png"),
+#       width = 15, height = 9, dpi = 300)
+
+```
+
+\newpage
+`r fig_nums(name = "college_attendees")`
+
+```{r plot the ienrol attendance, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
+
+# count attendees rate per portfolio
+df_attend <- df_ienrol %>%
+  filter(attendance_status == "Attended") %>% 
+  count(portfolio)
+
+
+# plot it [this has attendance numbers by the portfolios]
+ggplot(df_attend, aes(
+  x = reorder(portfolio, n),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black", fill = "#90b8da") +
+  geom_text(aes(y = n,
+                x = portfolio,
+                label = n),
+            position = position_stack(vjust = 0.5),
+            size = 6) +
+  coord_flip() +
+  labs (#title = "Number of Attendees in Training & Development Sessions (2023)", # included in caption
+        x = element_blank(),
+        y = "Number of attendees") +
+  theme_classic() +
+  theme(
+    title = element_text(size = 14, family="sans"),
+    legend.text = element_text(size = 14, family="sans"),
+    axis.text = element_text(size = 14, family ="sans"), 
+    axis.title = element_text(size = 14, family = "sans") 
+    ) +
+  scale_fill_manual(
+    values = "#90b8da"
+  ) 
+ # scale_x_discrete(
+ #   labels = df_label$port_perc_label) 
+
+
+ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance by portfolio.png"),
+       width = 15, height = 9, dpi = 300)
+
+```
+
+\vskip 0.3in
+
+`r fig_nums(name = "college_unique_attendees")`
+
+```{r plot the ienrol attendance for unique attendees, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
+
+# count attendees rate per portfolio
+df_attend_unique <- df_ienrol %>%
+  filter(attendance_status == "Attended") %>% 
+  distinct(fan, attendance_status, portfolio) %>% 
+  count(portfolio)
+
+
+# plot it [this has unique attendance numbers by the portfolios]
+ggplot(df_attend_unique, aes(
+  x = reorder(portfolio, n),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black", fill = "#90b8da") +
+  geom_text(aes(y = n,
+                x = portfolio,
+                label = n),
+            position = position_stack(vjust = 0.5),
+            size = 6) +
+  coord_flip() +
+  labs (#title = "Number of Unique Attendees in Training & Development Sessions (2023)", # included in caption
+        x = element_blank(),
+        y = "Number of attendees") +
+  theme_classic() +
+  theme(
+    title = element_text(size = 14, family="sans"),
+    legend.text = element_text(size = 14, family="sans"),
+    axis.text = element_text(size = 14, family ="sans"), 
+    axis.title = element_text(size = 14, family = "sans") 
+    ) +
+  scale_fill_manual(
+    values = "#90b8da"
+  ) 
+ # scale_x_discrete(
+ #   labels = df_label$port_perc_label) 
+
+
+ggsave(plot = last_plot(),filename = here::here("figures", "2023 unique attendance by portfolio.png"),
+       width = 15, height = 9, dpi = 300)
+
+```
+
+
+## Overview of Research Training and Development Topics
+
+Next, we explore the topics of the sessions in more detail. 
+`r table_nums(name = "theme_overview", display = "cite")` shows the number 
+of sessions and attendees by theme. The largest number of sessions offered was in the 
+'Fund and Apply' theme, demonstrating Flinders University's commitment
+to supporting researchers to attract research funding. The fact that this theme
+also had the largest number of attendees is evidence that the research community
+values these training and development opportunities. 
+
+These numbers reflect the total number of attendees, most of whom are from Flinders 
+(*n* = `r nrow(nrow(df_ienrol_att))`). 
+ 
+
+```{r theme overview sp, include = TRUE, eval = TRUE}
+
+#combine sessions & attendees per theme
+theme_overview <- df_sp %>%
+  group_by(Theme) %>%
+  summarise(`Number of Sessions` = n(),
+            `Number of Attendees` = sum(Attended))%>%
+  arrange (desc(`Number of Attendees`)) %>% 
+    adorn_totals("row")
+
+
+
+
+# make it look good
+kable(theme_overview, 
+      booktabs = T,
+      align = c('lcc'), 
+      caption = "Training and Development Summary for 2023",
+      linesep = "\\addlinespace") %>% 
+  kable_styling(latex_options = c("hold_position", "striped")) 
+
+```
+
+
+```{r fund and apply 2023 by team, include = TRUE, eval = FALSE}
+
+# [breadcrumb: This is very useful for working with the grants team, but does not need to be
+  # part of this report. Pull out into its own Rmd.]
+
+fund_23 <- df %>% 
+  filter(Theme == "Fund and Apply") %>% 
+  select (Attended, Session) %>% 
+  relocate (Attended, .after = Session) %>% 
+      mutate ("Number" = 1:n()) %>% 
+    relocate (Number)
+
+fund_team_23 <- fund_23 %>% 
+  mutate(Team = case_when(
+    grepl("NHMRC", Session) ~ "NHMRC", 
+    grepl("ARC", Session) ~ "ARC", 
+    grepl("MRFF", Session) ~ "MRFF", 
+    TRUE ~ as.character("Other"))
+  ) %>% 
+  select (-Number) %>% 
+  arrange(Team, desc(Attended)) %>% 
+        mutate ("Number" = 1:n()) %>% 
+    relocate (Number)
+         
+
+total_fund_team_23 <- sum(fund_team_23$Attended)
+
+knitr::kable (
+ fund_team_23 [, 1:3], # select only the names and levels columns
+  booktabs = T,
+   linesep = "",
+  col.names = c("Session Number", "Session Name", "Number of Attendees"),
+  caption =
+    sprintf("Fund and Apply sessions in 2023 (n = %d)",
+            total_fund_team_23),
+  align = 'clc', 
+  longtable = T #break the table over multiple pages
+  ) %>%
+   column_spec(1, width = "0.5in") %>% 
+   column_spec(2, width = "5in") %>% 
+  column_spec(3, width = "0.75in") %>% 
+  pack_rows (index = table(fund_team_23$Team)) %>%
+  kable_styling(full_width = F, 
+                latex_options = c("repeat_header", "hold_position", "striped")) 
+
+```
+
+\newpage
+
+`r table_nums(name = "sessions_by_theme", display = "cite")` provides 
+additional detail about the specific sessions that we ran within each of the
+training and development themes. 
+
+```{r sessions and attendees by theme, include = TRUE, eval=TRUE}
+
+# how many sessions per theme
+theme_sessions <- df_sp %>%
+  group_by(Theme) %>% 
+  select(c(Theme, Session, Attended)) %>% 
+  arrange(Theme) %>% 
+  mutate(Theme = as.factor(Theme))
+
+# make it look good
+kable(theme_sessions [, 2:3],
+  booktabs = T,
+  linesep = "\\addlinespace",
+  col.names = c("Sessions by Themes", "Number of Attendees"),
+  caption =
+    sprintf("Training and Development sessions for 2023 (n = %d)",
+            n_attended_sp),
+  align = 'lr', 
+  longtable = T #break the table over multiple pages
+  ) %>%
+  column_spec(1, width = "5in") %>% 
+  column_spec(2, width = "1in") %>% 
+  pack_rows (index = table(theme_sessions$Theme),
+               latex_gap_space = "0.4em",) %>%
+    kable_styling(
+    full_width = F,
+    latex_options = c("repeat_header", "hold_position", "striped")
+  ) 
+
+```
+
+\vskip 0.2in
+
+```{r sessions and attendees by College params, include = TRUE, eval=TRUE}
+
+# the parameters will sort it according to the College we indicate in the header
+
+data(list = params$portfolio)
+
+# the ienrol data doesn't have the theme, so we can't report on attendance by theme
+
+# how many attendees at each session
+session_att <- df_ienrol_att %>%
+  select(c(course_name, event_num, fan, portfolio)) %>% 
+  count(course_name, event_num)
+
+session_att_college <- df_ienrol_att %>%
+  filter(portfolio == "College of Education, Psychology and Social Work") %>% 
+  count(course_name, .drop= FALSE) %>% 
+  select(c(course_name, n)) %>% 
+  rename("n_college" = "n")
+
+# make it look good
+kable(session_att [, c(1,4)],
+  booktabs = T,
+  linesep = "\\addlinespace",
+  col.names = c("Sessions", "Number of Attendees"),
+  caption =
+    sprintf("Training and Development sessions for 2023 (n = %d)",
+            n_attended_sp),
+  align = 'lr', 
+  longtable = T #break the table over multiple pages
+  ) %>%
+  column_spec(1, width = "5in") %>% 
+  column_spec(2, width = "1in") %>% 
+    kable_styling(
+    full_width = F,
+    latex_options = c("repeat_header", "hold_position", "striped")
+  ) 
+
+```
+
+\vskip 0.2in
+
+If you have any questions or suggestions for additional training and development 
+sessions, please contact Dr Jen Beaudry (Manager, Researcher Training, Development 
+and Communication) in Research Development and Support. 
