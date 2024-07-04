@@ -135,7 +135,10 @@ kable(both,
 ```
 
 
-```{r fund and apply 2023 by team, include = TRUE, eval = TRUE}
+```{r fund and apply 2023 by team, include = TRUE, eval = FALSE}
+
+# [breadcrumb: This is very useful for working with the grants team, but does not need to be
+  # part of this report. Pull out into its own Rmd.]
 
 fund_23 <- df %>% 
   filter(Theme == "Fund and Apply") %>% 
@@ -178,7 +181,6 @@ knitr::kable (
                 latex_options = c("repeat_header", "hold_position", "striped")) 
 
 ```
-
 
 
 ```{r sessions and names by theme, include = FALSE, eval=FALSE}
