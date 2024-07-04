@@ -123,12 +123,8 @@ df_19 <- df_19 %>%
 
 # join all of the tibbles together
 
-df_a <- rbind(df_19, df_20)
-df_b <- rbind(df_a, df_21)
-df_c <- rbind(df_b, df_22)
-df_all <- rbind(df_c, df_23)
+df_all <- list(df_19, df_20, df_21, df_22, df_23) %>% reduce(full_join)
 
-rm(df_a, df_b, df_c)
 
 ```
 
