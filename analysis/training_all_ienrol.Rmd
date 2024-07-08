@@ -253,6 +253,17 @@ df <- dfi_all %>%
   mutate ("attendance_rate" = round((`Attended`/`Total`)*100,2)) %>% 
   mutate ("attendance_prop" = round((`Attended`/`Total`),2))
 
+# now get the summary data by quarter so we group it that way in the graph
+
+df_q <- dfi_all %>% 
+  mutate("qtr" = paste0(substring(year(date), 3,4),"/Q", quarter(date))) %>%  #create the quarter labels
+    group_by(qtr, attendance_status) %>% 
+   dplyr::count(qtr) %>% 
+    pivot_wider(names_from = attendance_status, values_from = n) %>% 
+    adorn_totals("col") %>% 
+  mutate ("attendance_rate" = round((`Attended`/`Total`)*100,2)) %>% 
+  mutate ("attendance_prop" = round((`Attended`/`Total`),2))
+
 
 # I AM NOT YET USING THIS...
 
@@ -308,6 +319,51 @@ ggplot(df) +
  # geom_bar(aes(x = month, y = Total), stat = "identity") +
   geom_line(aes(x = month, y = attendance_rate), stat = "identity", color = "red", linewidth = 2) +
 scale_x_date(NULL, date_labels = "%b %y", breaks = "month") +
+  scale_y_continuous(name = "Attendance Rates", limits = c(0, 100))
+
+```
+
+
+```{r graph by quarter}
+
+# this works to show the data grouped by quarter
+
+
+ggplot(df_q, aes(x = qtr, y = Total)) + 
+  geom_bar(stat = "identity") + 
+  xlab ("\nYear & Quarter") +
+  ylab ("Total registrations") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1))
+
+
+# trying to add the attendance rate as a line
+
+ggplot(df_q) +
+  geom_bar(aes(x = qtr, y = Total), stat = "identity") +
+  geom_line(aes(x = qtr, y = 100*attendance_prop), color = "red", linewidth = 2) +
+  xlab ("\nYear & Quarter") +
+  ylab ("Total registrations") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1)) +
+  scale_y_continuous(sec.axis=sec_axis(~.*0.01, name = "Proportion"))
+
+
+# we can't use the secondary axis because it's not scaled from the primary axis. I need to use 
+  # use facet wrap, and use two different graphs [breadcrumb, I will need to make my data long first]
+
+# https://ggplot2.tidyverse.org/reference/facet_wrap.html
+
+ggplot(df_q) +
+  geom_line(aes(x = qtr, y = Total, group = 1), stat = "identity", color = "blue", linewidth = 2) +
+  geom_line(aes(x = qtr, y = attendance_rate, group = 1), stat = "identity", color = "red", linewidth = 2) +
+  xlab ("\nYear & Quarter") +
+  facet_wrap(~ symbol, nrow = 2, scales = "free")
+
+
+# just plot attendance rates as a line [this works]
+ggplot(df_q) +
+ # geom_bar(aes(x = month, y = Total), stat = "identity") +
+  geom_line(aes(x = qtr, y = attendance_rate, group = 1), stat = "identity", color = "red", linewidth = 2) +
+  xlab ("\nYear & Quarter") +
   scale_y_continuous(name = "Attendance Rates", limits = c(0, 100))
 
 ```
