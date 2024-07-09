@@ -1,8 +1,8 @@
 ---
-title: "Researcher Training and Development Sessions for 2023"
+title: "Researcher Training and Development Sessions for 2024"
 #subtitle: "Enrolment and Attendance Statistics by College"
 #author: "Jen Beaudry"
-#date: "4/07/2024"
+#date: "9/07/2024"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -44,12 +44,14 @@ library(ggrepel) #for annotations in ggplot
 
 ```{r load ienrol data, eval=TRUE}
 
-df_full <- read_csv(here::here("data", "2023_ienrol_data.csv"), lazy = FALSE) %>% 
+df_full <- read_csv(here::here("data", "mid_2024_ienrol_data.csv"), lazy = FALSE) %>% 
   clean_names()
 
 ```
 
 ```{r delete sessions that did not run, eval=TRUE, include=FALSE}
+
+# need to update for 2024
 
 # delete the sessions that were scheduled but not run [will need to compare to our training spreadsheet]
   # use the n_courses code in the next chunk to make it easy to figure out which sessions didn't run
@@ -143,9 +145,9 @@ not_attended <- df %>% filter(attendance_status == "Did not attend")
 
 ```
 
-## Summary 
+## Summary [needs to be updated for 2024]
 
-In 2023, the Training, Development and Communication team in Research
+In 2024, the Training, Development and Communication team in Research
 Development and Support have offered `r nrow(n_courses)` information 
 sessions and development workshops to researchers and research support
 staff at Flinders University. 
@@ -177,7 +179,7 @@ these sessions across the Colleges and portfolios. The figure also represents
 how many of those who enroled attended the sessions and how many enroled 
 but did not attend the sessions. Overall, across all Colleges and 
 portfolios, the average attendance rate for 
-2023 was `r round(((nrow(attended)/(nrow(attended) + nrow(not_attended)))*100), 2)`%.
+2024 was `r round(((nrow(attended)/(nrow(attended) + nrow(not_attended)))*100), 2)`%.
 
 By far, the largest number of enrolments
 and attendees were in the College of Medicine and Public Health, which is 
@@ -228,7 +230,7 @@ ggplot(df_grouped, aes(
             position = position_stack(vjust = 0.5),
             size = 6) +
   coord_flip() +
-  labs (title = "Attendance by College and Portfolios (2023)", 
+  labs (title = "Attendance by College and Portfolios (First Half 2024)", 
         x = element_blank(),
         y = "Number of enrolments") +
   theme_classic() +
@@ -249,11 +251,10 @@ ggplot(df_grouped, aes(
     labels = df_label$port_perc_label) 
 
 
-#ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance rates by portfolio.png"),
+#ggsave(plot = last_plot(),filename = here::here("figures", "2024 attendance rates by portfolio.png"),
 #       width = 15, height = 9, dpi = 300)
 
 ```
-
 
 
 ```{r plot the ienrol attendance, include = FALSE, eval=TRUE, fig.width = 15, fig.height = 9}
@@ -276,7 +277,7 @@ ggplot(df_attend, aes(
             position = position_stack(vjust = 0.5),
             size = 6) +
   coord_flip() +
-  labs (title = "Number of Attendees in Training & Development Sessions (2023)", 
+  labs (title = "Number of Attendees in Training & Development Sessions (First Half 2024)", 
         x = element_blank(),
         y = "Number of attendees") +
   theme_classic() +
@@ -293,7 +294,7 @@ ggplot(df_attend, aes(
  #   labels = df_label$port_perc_label) 
 
 
-ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance by portfolio.png"),
+ggsave(plot = last_plot(),filename = here::here("figures", "2024 attendance by portfolio.png"),
        width = 15, height = 9, dpi = 300)
 
 ```
@@ -321,7 +322,7 @@ ggplot(df_attend_unique, aes(
             position = position_stack(vjust = 0.5),
             size = 6) +
   coord_flip() +
-  labs (title = "Number of Unique Attendees in Training & Development Sessions (2023)", 
+  labs (title = "Number of Unique Attendees in Training & Development Sessions (2024)", 
         x = element_blank(),
         y = "Number of attendees") +
   theme_classic() +
@@ -338,7 +339,7 @@ ggplot(df_attend_unique, aes(
  #   labels = df_label$port_perc_label) 
 
 
-ggsave(plot = last_plot(),filename = here::here("figures", "2023 unique attendance by portfolio.png"),
+ggsave(plot = last_plot(),filename = here::here("figures", "2024 unique attendance by portfolio.png"),
        width = 15, height = 9, dpi = 300)
 
 ```
@@ -385,7 +386,7 @@ ggplot(hass_grouped, aes(
             position = position_stack(vjust = 0.5),
             size = 4) +
   coord_flip() +
-  labs (title = "Attendance by Course Name (2023)", 
+  labs (title = "Attendance by Course Name (First Half 2024)", 
         x = element_blank(),
         y = "Number of enrolments") +
   theme_classic() +
@@ -404,7 +405,7 @@ ggplot(hass_grouped, aes(
   ) 
 
 
-#ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance rates by portfolio.png"),
+#ggsave(plot = last_plot(),filename = here::here("figures", "2024 attendance rates by portfolio.png"),
 #       width = 15, height = 9, dpi = 300)
 
 ```
