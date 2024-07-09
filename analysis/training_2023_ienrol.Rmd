@@ -343,6 +343,73 @@ ggsave(plot = last_plot(),filename = here::here("figures", "2023 unique attendan
 
 ```
 
+```{r data for HASS, eval=FALSE}
+
+# filter the full data set for HASS 
+
+hass <- df %>% filter(portfolio == "College of Humanities, Arts and Social Sciences")
+
+# now group it, but remove the First Nations Researchers Collective and all development
+  # programs because they're different
+
+hass_grouped <- hass %>% 
+  count(course_name, attendance_status) %>% 
+  group_by (course_name) %>% 
+  filter(!str_detect(course_name, "First Nations Researchers Collective")) %>% 
+  filter(!str_detect(course_name, "Essence")) %>% 
+  filter(!str_detect(course_name, "Mentoring")) %>% 
+  filter(!str_detect(course_name, "Building")) %>% 
+  mutate(att_pct = (n/sum(n)) * 100) %>% 
+  mutate(enrol = sum(n)) %>% 
+  arrange(desc(enrol))
+
+```
+
+
+```{r plot the hass ienrol attendance rate, include = TRUE, eval=TRUE, fig.width = 15, fig.height = 9}
+
+#use this to reorder the attendance factor within the ggplot code 
+attend <- c("Did not attend", "Attended")
+
+
+# plot it [this has attendance & non-attendance numbers]
+ggplot(hass_grouped, aes(
+  x = reorder(course_name, enrol),
+  fill = factor(attendance_status, levels = attend),
+  y = n
+)) +
+  geom_bar(stat = "identity", colour = "black") +
+  geom_text(aes(y = n,
+                x = course_name,
+                label = n),
+            position = position_stack(vjust = 0.5),
+            size = 4) +
+  coord_flip() +
+  labs (title = "Attendance by Course Name (2023)", 
+        x = element_blank(),
+        y = "Number of enrolments") +
+  theme_classic() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = c(0.8, 0.2),
+    title = element_text(size = 14, family="sans"),
+    legend.text = element_text(size = 14, family="sans"),
+    axis.text = element_text(size = 14, family ="sans"), 
+    axis.title = element_text(size = 14, family = "sans") 
+    ) +
+  scale_fill_manual(
+    values = c("#bfbfbf", "#90b8da"),
+    labels = c("Did not attend", "Attended"),
+    guide = guide_legend (reverse = TRUE)
+  ) 
+
+
+#ggsave(plot = last_plot(),filename = here::here("figures", "2023 attendance rates by portfolio.png"),
+#       width = 15, height = 9, dpi = 300)
+
+```
+
+
 
 
 ```{r graveyard from plot the ienrol attendance, eval=FALSE}
