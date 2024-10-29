@@ -1,6 +1,6 @@
 ---
 title: "Researcher Training and Development Sessions for 2024"
-#subtitle: "Enrolment and Attendance Statistics by College"
+subtitle: "As of October 28, 2024"
 #author: "Jen Beaudry"
 #date: "28/10/2024"
 output: pdf_document
@@ -285,6 +285,10 @@ n_attended_sp <- sum(df_sp$Attended)
 n_event_sp <- df_sp %>% 
   filter(Event == "E")
 
+# rename the collective theme  
+  
+df_sp [df_sp == "FNRC"] <- "First Nations Researchers Collective"
+
 ```
 
 <!-- Number of courses shown in spreadsheet = `r nrow(df_sp)` -->
@@ -558,7 +562,11 @@ The majority of attendees were academic staff members
 followed by professional staff members(`r round(df_attend %>% filter(job_status=="Professional") %>% select(n)/sum(df_attend$n)*100 ,2)`%).
 Only (`r round(df_attend %>% filter(job_status=="Student") %>% select(n)/sum(df_attend$n)*100 ,2)`%) were students;
 the iEnrol system does not differentiate between postgraduate and undergraduate
-students, so we cannot further break down this category. An analysis of the unique
+students, so we cannot further break down this category. This number likely
+underestimates the number of students who attended our sessions because
+some students are also staff members. 
+
+An analysis of the unique
 attendees, indicates that the largest cohort of unique attendees were academic
 staff members.
 
@@ -754,6 +762,8 @@ knitr::kable (
 additional detail about the specific sessions that we ran within each of the
 training and development themes.
 
+\vskip 0.3in
+
 ```{r sessions and attendees by theme, include = TRUE, eval=TRUE}
 
 # how many sessions per theme
@@ -787,45 +797,13 @@ kable(theme_sessions [, 2:3],
 
 
 
-```{r unique sessions by theme, include = TRUE, eval=TRUE}
+```{r unique sessions by theme, include = FALSE, eval=FALSE}
 
 # to answer P&C's question of how many unique courses we offer
 
-# how many sessions per theme
+# how many sessions per theme -- just a quick and dirty report. Copy and paste into excel.
 
 print(unique(df_sp$Session))
-
-unique_theme_sessions <- df_sp %>% 
-    arrange(Session)
-  mutate(Session = as.factor(Session)) %>% 
-  unique()
-
-    unique(df_sp$Session)
-
-%>%
-  unique(Session) %>% 
-  arrange(Theme, Session) %>%
-  mutate(Theme = as.factor(Theme))
-
-# make it look good
-kable(theme_sessions [, 2:3],
-  booktabs = T,
-  linesep = "\\addlinespace",
-  col.names = c("Sessions by Themes", "Number of Attendees"),
-  caption =
-    sprintf("Training and Development sessions for 2024 (n = %d)",
-            n_attended_sp),
-  align = 'lr',
-  longtable = T #break the table over multiple pages
-  ) %>%
-  column_spec(1, width = "5in") %>%
-  column_spec(2, width = "1in") %>%
-  pack_rows (index = table(theme_sessions$Theme),
-               latex_gap_space = "0.4em",) %>%
-    kable_styling(
-    full_width = F,
-    latex_options = c("repeat_header", "hold_position", "striped")
-  )
 
 ```
 
