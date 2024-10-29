@@ -363,6 +363,15 @@ hass_grouped <- hass %>%
   mutate(enrol = sum(n)) %>% 
   arrange(desc(enrol))
 
+# unique attendees 
+
+n_attendees_hass <- df %>%
+  filter(attendance_status == "Attended") %>% 
+  count(fan, course_name, event_num, portfolio) %>% 
+  filter(portfolio == "College of Humanities, Arts and Social Sciences")
+
+n_unique_attendees_hass <- n_distinct(n_attendees_hass$fan)
+
 ```
 
 
