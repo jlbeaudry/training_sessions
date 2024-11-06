@@ -1,6 +1,6 @@
 ---
 title: "Researcher Training and Development Sessions for 2024"
-subtitle: "As of October 28, 2024"
+subtitle: "As of October 31, 2024"
 #author: "Jen Beaudry"
 #date: "28/10/2024"
 output: pdf_document
@@ -67,7 +67,7 @@ df_sp <- read_xlsx(
              "2024_training_data_q3.xlsx"),
   sheet = '2024 Program',
   skip = 5, #start at the header row
-  n_max = 109,  #last session TD - RN info session
+  n_max = 112,  #last session FNRC day 3
   .name_repair = "unique",
   trim_ws = TRUE)
 
@@ -340,10 +340,10 @@ table_nums(name = "sessions_by_theme",
 
 ## Summary
 
-As of October 28, 2024, the Training, Development and Communication team in Research
+As of October 31, 2024, the Training, Development and Communication team in Research
 Development and Support have offered `r nrow(n_courses)` information
 sessions and development workshops to researchers and research support
-staff at Flinders University. We have 21 sessions scheduled for the remainder of the year.
+staff at Flinders University. We have 17 sessions scheduled for the remainder of the year.
 
 From the Flinders community, `r nrow(n_attendees_ienrol)` people attended the research training and
 development sessions thus far in 2024. Our actual attendance numbers for the year are larger (*n* = `r sum(df_sp$Attended)`)
@@ -357,7 +357,7 @@ The number of attendees at our sessions varied from `r min(n_courses$n)` in a
 hands-on ethics workshop to `r max(n_courses$n)` in a 'Writing for The Conversation' session. 
 We had only the one workshop with no attendees. The mean number of attendees at our sessions was `r round(mean(n_courses$n),0)` with a median of `r round(median(n_courses$n),0)`.
 
-In this report, we first break down our enrolments by College and portfolio. We
+In this report, we first break down our enrolments by College and Portfolio. We
 then explore the topics of the sessions in more detail. We provide an overview
 of the number of sessions and number of attendees by theme, and then
 report the number of attendees in each session organised by theme.
@@ -365,24 +365,23 @@ report the number of attendees in each session organised by theme.
 ## Number of Attendees by College and Portfolio
 
 `r fig_nums(name = "college_attendees", display = "cite")` illustrates how many people
-attended these sessions across the Colleges and portfolios. By far, the largest
+attended these sessions across the Colleges and Portfolios. By far, the largest
 number of attendees were in the College of Medicine and Public Health, which is
 representative of the large number of researchers in that College.
 
 Most of the professional staff who attended our training and development sessions were
 from the Portfolio of the Deputy Vice-Chancellor (Research). We collapsed all
 other portfolios in the University into a single "Other portfolios" category
-because of the large number of portfolios that our registrants represent
+because of the large number of portfolios that our attendees represent
 (including Library; Information and Digital Services; Chief of Staff Portfolio; and 
 Governance, Legal and Risk; as well as people who are not
 aligned with any portfolio in the iEnrol system).
 
-Overall, across all Colleges and
-portfolios, the average attendance rate for
+Overall, across all Colleges and Portfolios, the average attendance rate for
 2024 was `r round(((nrow(attended)/(nrow(attended) + nrow(not_attended)))*100), 2)`%.
 
 `r fig_nums(name = "college_unique_attendees", display = "cite")` illustrates the unique
-number of attendees across the Colleges and portfolios. The College of Medicine
+number of attendees across the Colleges and Portfolios. The College of Medicine
 and Public Health also had the most unique attendees.
 
 
@@ -559,8 +558,9 @@ df_attend <- df_ienrol %>%
 number of attendees according to their role, as reported in the iEnrol system.
 The majority of attendees were academic staff members
 (`r round(df_attend %>% filter(job_status=="Academic") %>% select(n)/sum(df_attend$n)*100 ,2)`%),
-followed by professional staff members(`r round(df_attend %>% filter(job_status=="Professional") %>% select(n)/sum(df_attend$n)*100 ,2)`%).
-Only (`r round(df_attend %>% filter(job_status=="Student") %>% select(n)/sum(df_attend$n)*100 ,2)`%) were students;
+followed by professional staff members (`r round(df_attend %>% filter(job_status=="Professional") %>% select(n)/sum(df_attend$n)*100 ,2)`%).
+Only `r round(df_attend %>% filter(job_status=="Student") %>% select(n)/sum(df_attend$n)*100 ,2)`% 
+of attendees at our sessions were students;
 the iEnrol system does not differentiate between postgraduate and undergraduate
 students, so we cannot further break down this category. This number likely
 underestimates the number of students who attended our sessions because
@@ -673,13 +673,16 @@ Next, we explore the topics of the sessions in more detail.
 `r table_nums(name = "theme_overview", display = "cite")` shows the number
 of sessions and attendees by theme. The largest number of sessions offered was in the
 'Fund and Apply' theme, demonstrating Flinders University's commitment
-to supporting researchers to attract research funding. The fact that this theme
+to supporting researchers to attract external research funding. The fact that this theme
 also had the largest number of attendees is evidence that the research community
 values these training and development opportunities.
 
-Of the `r nrow(n_courses)` sessions that we offered, `r nrow(n_event_sp)` were held face-to-face,
-with a hybrid option usually available for those who could not attend in person. The
-remainder of the sessions (*n* = `r (nrow(n_courses)-nrow(n_event_sp))`) were offered
+Of the `r nrow(n_courses)` sessions that we offered in 2024, `r nrow(n_event_sp)` 
+were held face-to-face, with a hybrid option available whenever possible for those who 
+could not attend in person. Unfortunately, it was not possible to offer a hybrid 
+option for a few sessions, such as interactive workshops. We will continue to explore 
+how to connect with and support our Rural, Regional and Remote colleagues in the future. 
+The remainder of the sessions (*n* = `r (nrow(n_courses)-nrow(n_event_sp))`) were offered
 online through synchronous delivery. 
 
 The numbers presented in the following tables reflect the total number of attendees
@@ -779,7 +782,7 @@ kable(theme_sessions [, 2:3],
   linesep = "\\addlinespace",
   col.names = c("Sessions by Themes", "Number of Attendees"),
   caption =
-    sprintf("Training and Development sessions for 2024 (n = %d)",
+    sprintf("Training and Development Sessions for 2024 (n = %d)",
             n_attended_sp),
   align = 'lr',
   longtable = T #break the table over multiple pages
@@ -808,7 +811,7 @@ print(unique(df_sp$Session))
 ```
 
 
-\vskip 0.2in
+\vskip 0.4in
 
 If you have any questions or suggestions for additional researcher training and development
 sessions, please contact Dr Jen Beaudry (Manager, Researcher Training, Development
