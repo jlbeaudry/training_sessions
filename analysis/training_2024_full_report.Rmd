@@ -1,6 +1,6 @@
 ---
 title: "Researcher Training and Development Sessions for 2024"
-subtitle: "As of October 31, 2024"
+#subtitle: "As of November 30, 2024"
 #author: "Jen Beaudry"
 #date: "28/10/2024"
 output: pdf_document
@@ -64,16 +64,16 @@ fig_nums <- captioner(prefix = "Figure")
 
 df_sp <- read_xlsx(
   here::here("data",
-             "2024_training_data_q3.xlsx"),
+             "2024_spreadsheet_data.xlsx"),
   sheet = '2024 Program',
   skip = 5, #start at the header row
-  n_max = 112,  #last session FNRC day 3
+  n_max = 127,  #last session Mentoring Closing
   .name_repair = "unique",
   trim_ws = TRUE)
 
 # load data from ienrol (this contains names of Flinders attendees & includes college/portfolio info)
 
-df_ienrol <- read_csv(here::here("data", "2024_ienrol_data_q3.csv"), lazy = FALSE) %>% 
+df_ienrol <- read_csv(here::here("data", "2024_ienrol_data.csv"), lazy = FALSE) %>% 
   clean_names()
 
 ```
@@ -221,7 +221,7 @@ not_attended <- df_ienrol %>% filter(attendance_status == "Did not attend")
 ```
 
 <!-- I use the following code to find the issues. But we don't need to run them with the full report. -->
-<!-- Number of courses shown in iEnrol, with registrations = `r nrow(n_courses_all)` -->
+<!-- Number of courses shown in iEnrol, with registrations = `r nrow(n_courses)`. Compare this to the number of rows in df_sp. -->
 
 
 ```{r show all ienrol courses with registrations, include = TRUE, eval = FALSE}
@@ -340,22 +340,25 @@ table_nums(name = "sessions_by_theme",
 
 ## Summary
 
-As of October 31, 2024, the Training, Development and Communication team in Research
+In 2024, the Training, Development and Communication team in Research
 Development and Support have offered `r nrow(n_courses)` information
 sessions and development workshops to researchers and research support
-staff at Flinders University. We have 17 sessions scheduled for the remainder of the year.
+staff at Flinders University. 
 
-From the Flinders community, `r nrow(n_attendees_ienrol)` people attended the research training and
-development sessions thus far in 2024. Our actual attendance numbers for the year are larger (*n* = `r sum(df_sp$Attended)`)
-because we allowed external researchers to join select sessions (e.g., Open
-Research sessions, etc.). Of the `r nrow(n_attendees_ienrol)`
-attendees from Flinders, `r n_unique_attendees_ienrol` were unique attendees, demonstrating
+From the Flinders community, `r nrow(n_attendees_ienrol)` people attended the 
+research training and development sessions in 2024. Our actual attendance numbers 
+for the year are larger (*n* = `r sum(df_sp$Attended)`) because we allowed 
+external researchers to join select sessions (e.g., Open Research sessions, etc.). 
+Of the `r nrow(n_attendees_ienrol)` attendees from Flinders, 
+`r n_unique_attendees_ienrol` were unique attendees, demonstrating
 that a large number of people from the Flinders research community are engaging in
 our research training and development program.
 
 The number of attendees at our sessions varied from `r min(n_courses$n)` in a
-hands-on ethics workshop to `r max(n_courses$n)` in a 'Writing for The Conversation' session. 
-We had only the one workshop with no attendees. The mean number of attendees at our sessions was `r round(mean(n_courses$n),0)` with a median of `r round(median(n_courses$n),0)`.
+hands-on ethics workshop to `r max(n_courses$n)` in the inaugural Research Town Hall. 
+We had only the one workshop with no attendees. The mean number of attendees at 
+our sessions was `r round(mean(n_courses$n),0)` with a median of 
+`r round(median(n_courses$n),0)`.
 
 In this report, we first break down our enrolments by College and Portfolio. We
 then explore the topics of the sessions in more detail. We provide an overview
@@ -364,17 +367,17 @@ report the number of attendees in each session organised by theme.
 
 ## Number of Attendees by College and Portfolio
 
-`r fig_nums(name = "college_attendees", display = "cite")` illustrates how many people
-attended these sessions across the Colleges and Portfolios. By far, the largest
-number of attendees were in the College of Medicine and Public Health, which is
-representative of the large number of researchers in that College.
+`r fig_nums(name = "college_attendees", display = "cite")` illustrates how many 
+people attended these sessions across the Colleges and Portfolios. By far, the 
+largest number of attendees were in the College of Medicine and Public Health, 
+which is representative of the large number of researchers in that College.
 
-Most of the professional staff who attended our training and development sessions were
-from the Portfolio of the Deputy Vice-Chancellor (Research). We collapsed all
+Most of the professional staff who attended our training and development sessions 
+were from the Portfolio of the Deputy Vice-Chancellor (Research). We collapsed all
 other portfolios in the University into a single "Other portfolios" category
 because of the large number of portfolios that our attendees represent
-(including Library; Information and Digital Services; Chief of Staff Portfolio; and 
-Governance, Legal and Risk; as well as people who are not
+(including Library; Information and Digital Services; Chief of Staff Portfolio; 
+and Governance, Legal and Risk; as well as people who are not
 aligned with any portfolio in the iEnrol system).
 
 Overall, across all Colleges and Portfolios, the average attendance rate for
@@ -566,9 +569,8 @@ students, so we cannot further break down this category. This number likely
 underestimates the number of students who attended our sessions because
 some students are also staff members. 
 
-An analysis of the unique
-attendees, indicates that the largest cohort of unique attendees were academic
-staff members.
+An analysis of the unique attendees, indicates that the largest cohort of unique 
+attendees were academic staff members.
 
 \vskip 0.3in
 
@@ -581,6 +583,8 @@ df_attend <- df_ienrol %>%
   filter(attendance_status == "Attended") %>%
   count(job_status)
 
+# need to note the threshold for the labels so only the smaller ones are repelled.
+threshold <- 100
 
 # plot it [this has attendance numbers by their role, as reported in ienrol]
 ggplot(df_attend, aes(
@@ -590,9 +594,14 @@ ggplot(df_attend, aes(
   geom_bar(stat = "identity", colour = "black", fill = "#90b8da") +
   geom_text(aes(y = n,
                 x = job_status,
-                label = n),
+                label = ifelse(n>threshold, n, "")),
             position = position_stack(vjust = 0.5),
             size = 6) +
+  geom_text_repel(aes(y = n,
+                      x = job_status,
+                      label = ifelse(n<threshold, n, "")), 
+                  box.padding = 0.25,
+                  size = 6) +
   coord_flip() +
   labs (#title = "Number of Attendees in Training & Development Sessions (2024)", # included in caption
         x = element_blank(),
@@ -611,8 +620,8 @@ ggplot(df_attend, aes(
  #   labels = df_label$port_perc_label)
 
 
-ggsave(plot = last_plot(),filename = here::here("figures", "2024 attendance by role.png"),
-       width = 15, height = 9, dpi = 300)
+# ggsave(plot = last_plot(),filename = here::here("figures", "2024 attendance by role.png"),
+#        width = 15, height = 9, dpi = 300)
 
 ```
 
