@@ -1,6 +1,6 @@
 ---
 title: "Researcher Training and Development Sessions for 2024"
-#subtitle: "As of November 30, 2024"
+#subtitle: "As of Dec 17, 2024"
 #author: "Jen Beaudry"
 #date: "28/10/2024"
 output: pdf_document
@@ -18,7 +18,7 @@ header-includes:
   - \pagestyle{fancy} # sets the footer on page 2 and beyond
   - \fancyhf{} # clears existing header & footer
   - \renewcommand{\headrulewidth}{0pt} # removes the line from the header
-  - \fancyfoot[L]{Jen Beaudry} # my name in footer
+  - \fancyfoot[L]{Researcher Training and Development 2024} # report name in footer
   - \fancyfoot[R]{\thepage} # page number in foooter
 ---
 
@@ -67,7 +67,7 @@ df_sp <- read_xlsx(
              "2024_spreadsheet_data.xlsx"),
   sheet = '2024 Program',
   skip = 5, #start at the header row
-  n_max = 127,  #last session Mentoring Closing
+  n_max = 129,  #last session RCA with deans
   .name_repair = "unique",
   trim_ws = TRUE)
 
