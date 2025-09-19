@@ -2,7 +2,7 @@
 title: "Researcher Training and Development Sessions for 2024"
 #subtitle: "Enrolment and Attendance Statistics by College"
 #author: "Jen Beaudry"
-#date: "9/07/2024"
+#date: "11/00/2024"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
