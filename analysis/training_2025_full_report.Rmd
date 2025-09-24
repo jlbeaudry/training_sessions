@@ -32,14 +32,31 @@ knitr::opts_chunk$set(echo = FALSE,
 
 ```{r library, eval=TRUE}
 
-library(here)
-library(tidyverse)
-library(kableExtra)
-library(readxl)
-library(janitor)
-library(rmarkdown)
-library(ggrepel) #for annotations in ggplot
-library(captioner)
+
+# Function to load or install packages
+load_or_install <- function(packages) {
+  for (package in packages) {
+    if (!require(package, character.only = TRUE)) {
+      install.packages(package, dependencies = TRUE)
+      library(package, character.only = TRUE)
+    }
+  }
+}
+
+# Required packages 
+packages <- c("here"
+              , "tidyverse"
+              , "kableExtra"
+              , "readxl"
+              , "janitor"
+              , "rmarkdown"
+              , "ggrepel" #for annotations in ggplot
+              , "captioner"
+              )
+
+# Load or install the packages
+load_or_install(packages)
+
 
 ```
 
