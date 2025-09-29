@@ -1,8 +1,8 @@
 ---
 title: "Researcher Training and Development Sessions for 2025"
-subtitle: "As of Sept 19, 2025"
+subtitle: "As of Sept 30, 2025"
 #author: "Jen Beaudry"
-#date: "19/09/2025"
+#date: "29/09/2025"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -84,7 +84,7 @@ df_sp <- read_xlsx(
              "2025_spreadsheet_data.xlsx"),
   sheet = '2025 Program',
   skip = 5, #start at the header row
-  n_max = 90,  #last session is IP science & medicine
+  n_max = 94,  #last session was DP EOI
   .name_repair = "unique",
   trim_ws = TRUE)
 
@@ -92,6 +92,9 @@ df_sp <- read_xlsx(
 
 df_ienrol <- read_csv(here::here("data", "2025_ienrol_data.csv"), lazy = FALSE) %>% 
   clean_names()
+
+# we also need to bring in the youtube views; see the spreadsheet in the youtube analytics folder
+youtube <- "879"
 
 ```
 
@@ -286,6 +289,7 @@ n_event_sp <- df_sp %>%
 # rename the collective theme in the spreadsheet 
   
 df_sp [df_sp == "FNRC"] <- "First Nations Researchers Collective"
+df_sp [df_sp == "Commerce"] <- "Post-award, Intellectual Property, and Commercialisation"
 
 ```
 
@@ -344,8 +348,8 @@ sessions and development workshops to researchers and research support
 staff at Flinders University. 
 
 From the Flinders community, `r nrow(n_attendees_ienrol)` people attended the 
-research training and development sessions in 2025. Our actual attendance numbers 
-for the year are larger (*n* = `r sum(df_sp$Attended)`) because we allowed 
+research training and development sessions thus far in 2025. Our actual attendance numbers 
+are larger (*n* = `r sum(df_sp$Attended)`) because we allowed 
 external researchers to join select sessions (e.g., Open Research sessions, 
 the inaugural NADOIC Indigenous Research Showcase, etc.). 
 Of the `r nrow(n_attendees_ienrol)` attendees from Flinders, 
@@ -568,9 +572,9 @@ df_attend_unique_role <- df_ienrol %>%
 `r fig_nums(name = "job_status_attendees", display = "cite")` illustrates the
 number of attendees according to their role, as reported in the iEnrol system.
 The majority of attendees were academic staff members
-(`r round(df_attend %>% filter(job_status=="Academic") %>% select(n)/sum(df_attend$n)*100 ,2)`%),
-followed by professional staff members (`r round(df_attend %>% filter(job_status=="Professional") %>% select(n)/sum(df_attend$n)*100 ,2)`%).
-Only `r round(df_attend %>% filter(job_status=="Student") %>% select(n)/sum(df_attend$n)*100 ,2)`% 
+(`r round(df_attend %>% filter(job_status=="Academic") %>% select(n)/sum(df_attend$n)*100 ,0)`%),
+followed by professional staff members (`r round(df_attend %>% filter(job_status=="Professional") %>% select(n)/sum(df_attend$n)*100 ,0)`%).
+Only `r round(df_attend %>% filter(job_status=="Student") %>% select(n)/sum(df_attend$n)*100 ,0)`% 
 of attendees at our sessions were students;
 the iEnrol system does not differentiate between postgraduate and undergraduate
 students, so we cannot further break down this category. This number likely
@@ -701,19 +705,28 @@ The numbers presented in the following tables reflect the total number of attend
 ### Delivery Modality
 
 Of the `r nrow(n_courses)` sessions that we offered in 2025, `r nrow(n_event_sp)` 
+(`r round((nrow(n_event_sp))/nrow(n_courses)*100, 0)`%)
 were held face-to-face, with a hybrid option available whenever possible for those who 
 could not attend in person. Unfortunately, it was not possible to offer a hybrid 
 option for a few sessions, such as interactive workshops. We will continue to explore 
 how to connect with and support our Rural, Regional and Remote colleagues in the future. 
-The remainder of the sessions (*n* = `r (nrow(n_courses)-nrow(n_event_sp))`) were offered
-online through synchronous delivery. 
+The remainder of the sessions 
+(*n* = ;`r round(((nrow(n_courses)-nrow(n_event_sp))/(nrow(n_courses))*100),0)`%) 
+were offered online through synchronous delivery. 
+
+Overall, across all Colleges and Portfolios, the average attendance rate for
+2025 was `r round(((nrow(attended)/(nrow(attended) + nrow(not_attended)))*100), 0)`%. 
+This is slightly lower than the attendance rate from 2024 (65%). 
 
 To better understand our research community's preference for online versus in-person
 events, in 2025, we recorded the number of attendees at our hybrid sessions who 
-attended in person (`r sum(n_event_sp$Attended_in_person)`) or online (
-`r sum(n_event_sp$Attended_online)`). Although it is likely that the Flinders' 
+attended in person (`r sum(n_event_sp$Attended_in_person)`; 
+(`r round((sum(n_event_sp$Attended_in_person))/sum(n_event_sp$Attended)*100, 0)`%) 
+or online (`r sum(n_event_sp$Attended_online)`; 
+(`r round((sum(n_event_sp$Attended_online))/sum(n_event_sp$Attended)*100, 0)`%) . 
+Although it is likely that the Flinders' 
 research community prefer to meet face-to-face when possible, this in-person 
-preference might be inflated by our team's decision to require people to attend an 
+preference might be inflated by our team's decision to require people to request an 
 online link for in-person sessions rather than providing it by default. 
 
 
