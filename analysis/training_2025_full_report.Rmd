@@ -7,11 +7,12 @@ output: pdf_document
 editor_options: 
   chunk_output_type: console
 header-includes:
+  - \raggedright
   - \usepackage{caption}
   - \usepackage{titling}
     \setlength{\droptitle}{-2cm} # removes some of the white space above title
   - \pretitle{\begin{center}
-    \includegraphics[width=1.5in, height=1.5in]{flinders-university-horizontal-master.png}\LARGE\\} # adds logo
+    \includegraphics[width=1.5in, height=0.5in]{flinders-university-horizontal-master.png}\LARGE\\} # adds logo
   - \posttitle{\end{center}}
   - \usepackage{fancyhdr}
   - \fancypagestyle{plain}{\pagestyle{fancy}} # sets the footer on page 1
@@ -74,7 +75,7 @@ fig_nums <- captioner(prefix = "Figure")
 ```
 
 
-```{r load training data}
+```{r load spreadsheet data}
 
 # load data from training spreadsheet (this is the complete number of attendees
   # & includes info about the theme)
@@ -94,7 +95,7 @@ df_ienrol <- read_csv(here::here("data", "2025_ienrol_data.csv"), lazy = FALSE) 
   clean_names()
 
 # we also need to bring in the youtube views; see the spreadsheet in the youtube analytics folder
-youtube <- "879"
+youtube <- "1089"
 
 ```
 
@@ -274,14 +275,13 @@ df_sp_2 <- df_sp %>%
 ienrol_vs_sp <- anti_join(n_courses_2, df_sp, by = "Session")
 sp_vs_ienrol <- anti_join(df_sp, n_courses_2, by = "Session")
 
-# [breadcrumb] 2025: two sessions missing from ienrol that need to be sorted - Mary's general college sessions not captured in iEnrol.
 
 rm(n_courses_2, df_sp_2, ienrol_vs_sp, sp_vs_ienrol)
 
 ```
 
 
-```{r clean spreadsheet data}
+```{r clean spreadsheet data & calculate number of courses}
 
 df_sp <- df_sp %>% 
    dplyr::rename("Attended" = "No. attended") %>%
@@ -289,6 +289,10 @@ df_sp <- df_sp %>%
      dplyr::rename("Attended_online" = "No. Online attendees") %>%
     select(c(Theme, Event, Attended, Session, Attended_in_person, Attended_online)) %>% 
   mutate("Event" = as.factor(Event))
+
+# number of courses from spreadsheet rather than ienrol because Mary's sessions can't be captured in ienrol
+
+n_courses <- nrow(df_sp)
 
 # this number will differ from the T&D spreadsheet because we have had attendees that are not in iEnrol
 
@@ -355,30 +359,29 @@ table_nums(name = "sessions_by_theme",
 ## Summary
 
 In 2025, the Training, Development and Communication team in Research
-Development and Support have offered `r nrow(df_sp)` information
+Development and Support have offered `r n_courses` information
 sessions and development workshops to researchers and research support
 staff at Flinders University. 
 
 From the Flinders community, `r nrow(n_attendees_ienrol)` people attended the 
-research training and development sessions thus far in 2025. Our actual attendance numbers 
+research training and development sessions in 2025. Our actual attendance numbers 
 are larger (*n* = `r sum(df_sp$Attended)`) because we allowed 
 external researchers to join select sessions (e.g., Open Research sessions, 
 the inaugural NADOIC Indigenous Research Showcase, etc.). We also report information
 sessions that were delivered individually to College forums (*n* = `r missing_ienrol`), 
 but we note that the attendance numbers were estimated and the attendees could not 
 be named or captured in the iEnrol system. 
+
 Of the `r nrow(n_attendees_ienrol)` attendees from Flinders, 
 `r n_unique_attendees_ienrol` were unique attendees, demonstrating
 that a large number of people from the Flinders research community are engaging in
 our research training and development program.
 
-The number of attendees at our sessions varied from `r min(n_courses$n)` in three sessions
-(i.e., an animal ethics information session, an Intellectual Property workshop for the 
-Colleges of HASS, EPSW, and BGL, and a bespoke DECRA Development Workshop for a selected
-group of applicants) to `r max(n_courses$n)` in our first session on Microsoft 
-CoPilot and AI for research. The mean number of attendees at 
-our sessions was `r round(mean(n_courses$n),0)` with a median of 
-`r round(median(n_courses$n),0)`.
+The number of attendees at our sessions varied from `r min(df_sp$Attended)` in one session
+(i.e., a hands-on workshop for using ResearchNow) to `r max(df_sp$Attended)` 
+in our first session on Microsoft CoPilot and AI for research. The mean 
+number of attendees at our sessions was `r round(mean(df_sp$Attended),0)` with a median of 
+`r round(median(df_sp$Attended),0)`.
 
 In this report, we first break down our enrolments by College and Portfolio. We
 then explore the topics of the sessions in more detail. We provide an overview
@@ -405,8 +408,8 @@ Overall, across all Colleges and Portfolios, the average attendance rate for
 This is slightly lower than the attendance rate from 2024 (65%). 
 
 `r fig_nums(name = "college_unique_attendees", display = "cite")` illustrates the unique
-number of attendees across the Colleges and Portfolios. The College of Medicine
-and Public Health also had the most unique attendees.
+number of attendees across the Colleges and Portfolios. As would be expected for the 
+largest College, the College of Medicineand Public Health had the most unique attendees.
 
 
 ```{r plot the ienrol attendance with rate, eval=FALSE, fig.width = 15, fig.height = 9}
@@ -628,7 +631,8 @@ ggplot(df_attend, aes(
                       x = job_status,
                       label = ifelse(n<threshold, n, "")), 
                   box.padding = 0.25,
-                  size = 6) +
+                  size = 6, 
+                  nudge_y = 0.5) +
   coord_flip() +
   labs (#title = "Number of Attendees in Training & Development Sessions (2025)", # included in caption
         x = element_blank(),
@@ -702,16 +706,16 @@ ggsave(plot = last_plot(),filename = here::here("figures", "2025 unique attendan
 
 \vskip 0.3in
 
-## Overview of Research Training and Development Topics
+## Overview of Research Training and Development Themes and Topics
 
 Next, we explore the topics of the sessions in more detail.
 
 `r table_nums(name = "theme_overview", display = "cite")` shows the number
 of sessions and attendees by theme. The largest number of sessions offered was in the
 'Research Funding' theme, demonstrating Flinders University's commitment
-to support and develop researchers so they can attract external research funding. The fact that this theme
-also had the largest number of attendees is evidence that the research community
-values these training and development opportunities.
+to support and develop researchers so they can attract external research funding. 
+The fact that this theme also had the largest number of attendees is evidence 
+that the research community values these training and development opportunities.
 
 The numbers presented in the following tables reflect the total number of attendees
 (*n* = `r n_attended_sp`), most of whom are from Flinders
@@ -719,26 +723,22 @@ The numbers presented in the following tables reflect the total number of attend
 
 ### Delivery Modality
 
-Of the `r nrow(n_courses)` sessions that we offered in 2025, `r nrow(n_event_sp)` 
-(`r round((nrow(n_event_sp))/nrow(n_courses)*100, 0)`%)
+Of the `r nrow(df_sp)` sessions that we offered in 2025, `r nrow(n_event_sp)` 
+(`r round((nrow(n_event_sp))/nrow(df_sp)*100, 0)`%)
 were held face-to-face, with a hybrid option available whenever possible for those who 
 could not attend in person. Unfortunately, it was not possible to offer a hybrid 
 option for a few sessions, such as interactive workshops. We will continue to explore 
 how to connect with and support our Rural, Regional and Remote colleagues in the future. 
 The remainder of the sessions 
-(*n* = ;`r round(((nrow(n_courses)-nrow(n_event_sp))/(nrow(n_courses))*100),0)`%) 
+(*n* = `r (nrow(df_sp)-nrow(n_event_sp))`; `r round(((nrow(df_sp)-nrow(n_event_sp))/(nrow(df_sp))*100),0)`%) 
 were offered online through synchronous delivery. 
-
-Overall, across all Colleges and Portfolios, the average attendance rate for
-2025 was `r round(((nrow(attended)/(nrow(attended) + nrow(not_attended)))*100), 0)`%. 
-This is slightly lower than the attendance rate from 2024 (65%). 
 
 To better understand our research community's preference for online versus in-person
 events, in 2025, we recorded the number of attendees at our hybrid sessions who 
-attended in person (`r sum(n_event_sp$Attended_in_person)`; 
-(`r round((sum(n_event_sp$Attended_in_person))/sum(n_event_sp$Attended)*100, 0)`%) 
-or online (`r sum(n_event_sp$Attended_online)`; 
-(`r round((sum(n_event_sp$Attended_online))/sum(n_event_sp$Attended)*100, 0)`%) . 
+attended in person (*n* = `r sum(n_event_sp$Attended_in_person)`; 
+`r round((sum(n_event_sp$Attended_in_person))/sum(n_event_sp$Attended)*100, 0)`%) 
+or online (*n* = `r sum(n_event_sp$Attended_online)`; 
+`r round((sum(n_event_sp$Attended_online))/sum(n_event_sp$Attended)*100, 0)`%). 
 Although it is likely that the Flinders' 
 research community prefer to meet face-to-face when possible, this in-person 
 preference might be inflated by our team's decision to require people to request an 
@@ -759,10 +759,11 @@ theme_overview <- df_sp %>%
 
 # make it look good
 kable(theme_overview,
+      format = "latex",
       booktabs = T,
       align = c('lcc'),
       caption = "Training and Development Summary for 2025",
-      linesep = "\\addlinespace") %>%
+      linesep = "") %>% #get rid of spacing every five lines
   kable_styling(latex_options = c("hold_position", "striped"))
 
 ```
