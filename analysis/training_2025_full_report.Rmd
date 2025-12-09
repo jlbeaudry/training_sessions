@@ -1,6 +1,6 @@
 ---
 title: "Researcher Training and Development Sessions for 2025"
-subtitle: "As of Sept 30, 2025"
+# subtitle: "As of Dec 8, 2025"
 #author: "Jen Beaudry"
 #date: "29/09/2025"
 output: pdf_document
@@ -84,7 +84,7 @@ df_sp <- read_xlsx(
              "2025_spreadsheet_data.xlsx"),
   sheet = '2025 Program',
   skip = 5, #start at the header row
-  n_max = 94,  #last session was DP EOI
+  n_max = 129,  #last session was MRFF strategic planning
   .name_repair = "unique",
   trim_ws = TRUE)
 
@@ -147,13 +147,20 @@ df_ienrol <- df_ienrol %>%
 
 # summarise the data based on how many courses were held and how many folks attended each of the sessions
 
-n_courses_all <- df_ienrol %>% 
+n_courses_all_ienrol <- df_ienrol %>% 
 #  filter(attendance_status == "Attended") %>% 
   count(course_name, event_num)
 
-n_courses <- df_ienrol %>% 
+n_courses_ienrol <- df_ienrol %>% 
   filter(attendance_status == "Attended") %>% 
   count(course_name, event_num)
+
+# In 2025, we started including Mary's visits to the Colleges (this is the first year she did that) 
+  # because we are going to support this more in the future. She doesn't have attendance data 
+  # for those visits, so we have not included them in iEnrol. As such, there is a disconnect between
+  # the number of sessions captured in the spreadsheet vs. ienrol. We will report this in the report. 
+
+missing_ienrol <- 2
 
 # any course with zero attendees will not show up in n_courses. We need to manually add them back in. 
   # 2025: we don't seem to have any courses that were not included, so skip this for now. 
@@ -197,11 +204,13 @@ not_attended <- df_ienrol %>% filter(attendance_status == "Did not attend")
 
 ```
 
-<!-- I use the following code to find the issues. But we don't need to run them with the full report. -->
-<!-- Number of courses shown in iEnrol, with registrations = `r nrow(n_courses)`. Compare this to the number of rows in df_sp. -->
 
 
 ```{r show all ienrol courses with registrations, include = TRUE, eval = FALSE}
+
+# I use the following code to find the issues. But we don't need to run them with the full report.
+# Number of courses shown in iEnrol, with registrations = `r nrow(n_courses)`. Compare this to the number of rows in df_sp.
+
 
 # make it look good
 kable(n_courses_all, 
@@ -213,9 +222,12 @@ kable(n_courses_all,
 
 ```
 
-<!-- Number of courses shown in iEnrol, with attendees = `r nrow(n_courses)` -->
+
 
 ```{r show all ienrol courses with attendees, include = TRUE, eval = FALSE}
+
+# Number of courses shown in iEnrol, with attendees = `r nrow(n_courses)`
+
 
 # make it look good
 kable(n_courses, 
@@ -262,7 +274,7 @@ df_sp_2 <- df_sp %>%
 ienrol_vs_sp <- anti_join(n_courses_2, df_sp, by = "Session")
 sp_vs_ienrol <- anti_join(df_sp, n_courses_2, by = "Session")
 
-# [breadcrumb] 2025: two sessions missing from ienrol that need to be added in - FNRC August & Indigenous Research Showcase
+# [breadcrumb] 2025: two sessions missing from ienrol that need to be sorted - Mary's general college sessions not captured in iEnrol.
 
 rm(n_courses_2, df_sp_2, ienrol_vs_sp, sp_vs_ienrol)
 
@@ -343,7 +355,7 @@ table_nums(name = "sessions_by_theme",
 ## Summary
 
 In 2025, the Training, Development and Communication team in Research
-Development and Support have offered `r nrow(n_courses)` information
+Development and Support have offered `r nrow(df_sp)` information
 sessions and development workshops to researchers and research support
 staff at Flinders University. 
 
@@ -351,7 +363,10 @@ From the Flinders community, `r nrow(n_attendees_ienrol)` people attended the
 research training and development sessions thus far in 2025. Our actual attendance numbers 
 are larger (*n* = `r sum(df_sp$Attended)`) because we allowed 
 external researchers to join select sessions (e.g., Open Research sessions, 
-the inaugural NADOIC Indigenous Research Showcase, etc.). 
+the inaugural NADOIC Indigenous Research Showcase, etc.). We also report information
+sessions that were delivered individually to College forums (*n* = `r missing_ienrol`), 
+but we note that the attendance numbers were estimated and the attendees could not 
+be named or captured in the iEnrol system. 
 Of the `r nrow(n_attendees_ienrol)` attendees from Flinders, 
 `r n_unique_attendees_ienrol` were unique attendees, demonstrating
 that a large number of people from the Flinders research community are engaging in
